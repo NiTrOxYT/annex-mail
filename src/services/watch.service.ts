@@ -4,6 +4,7 @@ import { ProviderRegistry } from "@/lib/providers/provider.registry";
 import { EmailAccount } from "@prisma/client";
 import { logger } from "@/lib/logger/logger";
 import { eventBus } from "@/lib/events/event-bus";
+import { AuditService } from "@/lib/audit/audit.service";
 
 export class WatchService {
   async setupWatch(account: EmailAccount): Promise<void> {
@@ -12,6 +13,7 @@ export class WatchService {
     );
     const provider = ProviderRegistry.getProvider(account.provider);
     const watcher = provider.getWatcher();
+    const audit = container.resolve<AuditService>("AuditService");
 
     logger.info(
       `Setting up watch for account: ${account.email}`,
@@ -34,6 +36,19 @@ export class WatchService {
           });
         });
 
+      await audit.logAudit({
+        action: "WATCH_CREATED",
+        message: `Gmail push watch registered for ${account.email}`,
+        context: {
+          userId: "SYSTEM",
+          organizationId: account.organizationId,
+        },
+        metadata: {
+          resourceId,
+          expiration: expiration.toISOString(),
+        },
+      });
+
       await eventBus.publish({
         name: "WATCH_CREATED",
         timestamp: new Date(),
@@ -47,6 +62,21 @@ export class WatchService {
           error: String(err),
         },
       );
+
+      await audit
+        .logAudit({
+          action: "WATCH_FAILED",
+          message: `Gmail watch setup failed for ${account.email}`,
+          context: {
+            userId: "SYSTEM",
+            organizationId: account.organizationId,
+          },
+          metadata: {
+            error: String(err),
+          },
+        })
+        .catch(() => {});
+
       throw err;
     }
   }
@@ -55,6 +85,7 @@ export class WatchService {
     const watchRepo = container.resolve<WatchStateRepository>(
       "WatchStateRepository",
     );
+    const audit = container.resolve<AuditService>("AuditService");
     const active = await watchRepo.findByEmailAccountId(account.id);
     if (!active) {
       await this.setupWatch(account);
@@ -68,6 +99,15 @@ export class WatchService {
         "WatchService",
       );
       await this.setupWatch(account);
+
+      await audit.logAudit({
+        action: "WATCH_RENEWED",
+        message: `Gmail watch renewed for ${account.email}`,
+        context: {
+          userId: "SYSTEM",
+          organizationId: account.organizationId,
+        },
+      });
 
       await eventBus.publish({
         name: "WATCH_RENEWED",

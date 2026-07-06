@@ -23,14 +23,13 @@ async function postHandler() {
       "https://www.googleapis.com/auth/gmail.readonly",
       "https://www.googleapis.com/auth/gmail.modify",
       "https://www.googleapis.com/auth/gmail.labels",
-      "offline",
     ];
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri,
     )}&scope=${encodeURIComponent(
       scopes.join(" "),
-    )}&access_type=offline&prompt=consent`;
+    )}&access_type=offline&prompt=consent&include_granted_scopes=true`;
 
     return ApiResponse.success({ url: authUrl });
   } catch (err) {

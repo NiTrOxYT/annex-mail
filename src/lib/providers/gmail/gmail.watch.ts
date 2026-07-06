@@ -9,6 +9,16 @@ export class GmailWatch implements MailWatcher {
   async watch(
     account: EmailAccount,
   ): Promise<{ resourceId: string; expiration: Date }> {
+    if (
+      !this.topicName ||
+      this.topicName.includes("your-project-id") ||
+      this.topicName.includes("projects/annex-mail/topics/incoming-emails")
+    ) {
+      throw new Error(
+        "GOOGLE_PUB_SUB_TOPIC environment variable is missing, empty, or using placeholder values. Real Gmail watch cannot be registered.",
+      );
+    }
+
     const res = await gmailClient.fetchWithAuth(
       account,
       "https://gmail.googleapis.com/gmail/v1/users/me/watch",
@@ -24,17 +34,8 @@ export class GmailWatch implements MailWatcher {
 
     if (!res.ok) {
       const text = await res.text();
-      try {
-        const json = JSON.parse(text) as { simulated?: boolean };
-        if (json.simulated) {
-          return {
-            resourceId: "simulated_watch_resource_id",
-            expiration: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          };
-        }
-      } catch {}
       throw new Error(
-        `Failed to establish Gmail Watch: ${res.status} - ${text}`,
+        `Failed to establish production Gmail Watch: ${res.status} - ${text}`,
       );
     }
 
@@ -56,10 +57,6 @@ export class GmailWatch implements MailWatcher {
     );
     if (!res.ok) {
       const text = await res.text();
-      try {
-        const json = JSON.parse(text) as { simulated?: boolean };
-        if (json.simulated) return;
-      } catch {}
       throw new Error(`Failed to stop Gmail Watch: ${res.status} - ${text}`);
     }
   }
