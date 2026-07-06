@@ -7,9 +7,10 @@ import { logger } from "@/lib/logger/logger";
 import { withRateLimit } from "@/lib/security/rate-limiter";
 import { googleConfig } from "@/config/google";
 import { appConfig } from "@/config/app";
+import crypto from "crypto";
 
 async function getHandler(req: Request) {
-  logger.info("[OAuth] Received Gmail callback request", "GmailCallback");
+  logger.info("[OAuth] OAuth callback started", "GmailCallback");
 
   const session = await auth();
   if (
@@ -69,36 +70,84 @@ async function getHandler(req: Request) {
     return new Response("Missing authorization code", { status: 400 });
   }
 
+  // Log code hash (first 8 chars of SHA-256)
+  const codeHash = crypto
+    .createHash("sha256")
+    .update(code)
+    .digest("hex")
+    .substring(0, 8);
+  logger.info(
+    `[OAuth] Authorization code hash (first 8 chars): ${codeHash}`,
+    "GmailCallback",
+  );
+
+  const emailStr = session.user.email || "business@annex-consultancy.com";
   const clientId = googleConfig.clientId;
   const clientSecret = googleConfig.clientSecret;
   const redirectUri = `${appConfig.url}/api/gmail/callback`;
 
   try {
-    // 2. Exchange authorization code
+    // 2. Exchange authorization code using application/x-www-form-urlencoded
+    logger.info("[OAuth] Token exchange started", "GmailCallback");
+
+    const obscuredClientId =
+      clientId.length > 20
+        ? `${clientId.substring(0, 8)}...${clientId.substring(clientId.length - 8)}`
+        : "obscured_client_id";
+
     logger.info(
-      "[OAuth] Exchanging authorization code for Google tokens",
+      `[OAuth] Token Exchange parameters: Endpoint=https://oauth2.googleapis.com/token, grant_type=authorization_code, redirect_uri=${redirectUri}, client_id=${obscuredClientId}`,
       "GmailCallback",
     );
+
+    const tokenParams = new URLSearchParams();
+    tokenParams.append("code", code);
+    tokenParams.append("client_id", clientId);
+    tokenParams.append("client_secret", clientSecret);
+    tokenParams.append("redirect_uri", redirectUri);
+    tokenParams.append("grant_type", "authorization_code");
+
     const response = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        code,
-        client_id: clientId,
-        client_secret: clientSecret,
-        redirect_uri: redirectUri,
-        grant_type: "authorization_code",
-      }),
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: tokenParams.toString(),
     });
 
     if (!response.ok) {
       const errText = await response.text();
+
+      // Log Google's full response body on failure
+      logger.error(
+        `[OAuth] Google Token Exchange error response body: ${errText}`,
+        "GmailCallback",
+        { status: response.status },
+      );
+
+      // Handle double-redirect race condition gracefully:
+      // If code was already exchanged by a preceding request, the database record
+      // should already be ACTIVE. If so, redirect to settings instead of showing 500 error.
+      const existingAccount = await db.emailAccount.findUnique({
+        where: { email: emailStr },
+      });
+
+      if (
+        existingAccount &&
+        existingAccount.status === "ACTIVE" &&
+        existingAccount.encryptedRefreshToken
+      ) {
+        logger.warn(
+          `[OAuth] Token exchange returned ${response.status} (invalid_grant), but EmailAccount is already ACTIVE. Assuming code was already consumed by preceding request. Redirecting user to settings.`,
+          "GmailCallback",
+        );
+        return NextResponse.redirect(new URL("/dashboard/settings", req.url));
+      }
+
       throw new Error(
         `OAuth token exchange failed: ${response.status} - ${errText}`,
       );
     }
 
-    logger.info("[OAuth] Token exchange successful", "GmailCallback");
+    logger.info("[OAuth] Token exchange completed", "GmailCallback");
 
     const data = (await response.json()) as {
       access_token?: string;
@@ -106,7 +155,7 @@ async function getHandler(req: Request) {
       expires_in?: number;
     };
 
-    // 3. Verify Google token response contains required fields
+    // 3. Verify Google token response structure
     logger.info("[OAuth] Verifying token response structure", "GmailCallback");
     if (!data.access_token) {
       throw new Error(
@@ -132,10 +181,10 @@ async function getHandler(req: Request) {
     // 4. Encrypt tokens
     logger.info("[OAuth] Encrypting credentials", "GmailCallback");
     const encryptedAccessToken = encrypt(accessToken);
-    const encryptedRefreshToken = encrypt(refreshToken);
+    const encryptedRefreshToken = refreshToken
+      ? encrypt(refreshToken)
+      : undefined;
     const expiresAt = new Date(Date.now() + data.expires_in * 1000);
-
-    const emailStr = session.user.email || "business@annex-consultancy.com";
 
     // 5. Save EmailAccount to database in a transaction
     logger.info(
@@ -143,6 +192,16 @@ async function getHandler(req: Request) {
       "GmailCallback",
     );
     const account = await db.$transaction(async (tx) => {
+      // If refreshToken is omitted (due to re-auth without consent prompt), keep the old one
+      const updateData: Record<string, unknown> = {
+        encryptedAccessToken,
+        expiresAt,
+        status: "ACTIVE",
+      };
+      if (encryptedRefreshToken) {
+        updateData.encryptedRefreshToken = encryptedRefreshToken;
+      }
+
       return await tx.emailAccount.upsert({
         where: { email: emailStr },
         create: {
@@ -151,16 +210,11 @@ async function getHandler(req: Request) {
           displayName: "Annex Business Gmail",
           email: emailStr,
           encryptedAccessToken,
-          encryptedRefreshToken,
+          encryptedRefreshToken: encryptedRefreshToken ?? "",
           expiresAt,
           status: "ACTIVE",
         },
-        update: {
-          encryptedAccessToken,
-          encryptedRefreshToken,
-          expiresAt,
-          status: "ACTIVE",
-        },
+        update: updateData,
       });
     });
 
@@ -169,7 +223,7 @@ async function getHandler(req: Request) {
       "GmailCallback",
     );
 
-    // 6. Spawn initial sync asynchronously in the background. Failures inside it will not crash callback redirect.
+    // 6. Spawn initial sync asynchronously in background
     logger.info(
       "[OAuth] Initiating initial sync background task",
       "GmailCallback",
