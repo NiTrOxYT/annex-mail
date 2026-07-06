@@ -3,7 +3,6 @@ import { watchService } from "@/services/watch.service";
 import { historyService } from "@/services/history.service";
 import { container } from "@/lib/di/container";
 import { QueueProvider } from "@/lib/queue/queue.interface";
-import { DatabaseQueueProvider } from "@/lib/queue/database-queue";
 import { logger } from "@/lib/logger/logger";
 
 export interface MaintenanceStepResult {
@@ -58,8 +57,12 @@ export class SchedulerService {
    * Retry failed background jobs that have remaining attempts.
    */
   async retryFailedQueueJobs(): Promise<void> {
-    const queue = container.resolve<QueueProvider>("QueueProvider");
-    if (queue instanceof DatabaseQueueProvider) {
+    const queue = container.resolve<QueueProvider>(
+      "QueueProvider",
+    ) as unknown as {
+      retryFailed?: (count: number) => Promise<void>;
+    };
+    if (queue && typeof queue.retryFailed === "function") {
       await queue.retryFailed(20);
     }
     await this.updateMetadata("last_queue_retry", new Date().toISOString());

@@ -4,6 +4,6 @@ export async function register() {
     validateEnv();
 
     const { registerDependencies } = await import("@/lib/di/register");
-    registerDependencies();
+    await registerDependencies();
   }
 }
