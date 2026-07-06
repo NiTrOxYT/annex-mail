@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { sanitizeHtml, validateAttachment } from "../../src/lib/security/sanitizer";
+import { sanitizeHtml } from "../../src/lib/security/sanitizer";
+import { validateAttachment } from "../../src/lib/security/attachment-validator";
 
 describe("HTML Sanitizer", () => {
   it("should strip malicious script tags while retaining formatting tags", () => {

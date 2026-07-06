@@ -1,6 +1,6 @@
 import { container } from "@/lib/di/container";
 import { EmailProvider } from "@/lib/email/provider.interface";
-import { sanitizeHtml } from "@/lib/security/sanitizer";
+
 import { EmailAccountRepository } from "@/repositories/email-account.repository";
 import { ConversationRepository } from "@/repositories/conversation.repository";
 import { MessageRepository } from "@/repositories/message.repository";
@@ -110,6 +110,7 @@ export class MailService {
       const generatedMsgId = this.generateMessageId();
       const headers = { "Message-ID": generatedMsgId };
 
+      const { sanitizeHtml } = await import("@/lib/security/sanitizer");
       const sanitizedBody = sanitizeHtml(input.body);
 
       const provider = this.getEmailProvider();
@@ -243,6 +244,7 @@ export class MailService {
         ? lastMessage.subject
         : `Re: ${lastMessage.subject}`;
 
+      const { sanitizeHtml } = await import("@/lib/security/sanitizer");
       const sanitizedBody = sanitizeHtml(input.body);
 
       const provider = this.getEmailProvider();

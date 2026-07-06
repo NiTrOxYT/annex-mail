@@ -3,7 +3,7 @@ import { container } from "@/lib/di/container";
 import { StorageProvider } from "@/lib/storage/storage.interface";
 import { ApiResponse } from "@/utils/api";
 import { AuthenticationError, ValidationError } from "@/utils/errors";
-import { validateAttachment } from "@/lib/security/sanitizer";
+import { validateAttachment } from "@/lib/security/attachment-validator";
 import crypto from "crypto";
 
 export async function POST(req: Request) {
