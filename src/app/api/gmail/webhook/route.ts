@@ -1,5 +1,5 @@
 import { db } from "@/lib/db/db";
-import { container } from "@/lib/di/container";
+import { container, ensureInitialized } from "@/lib/di/container";
 import { QueueProvider } from "@/lib/queue/queue.interface";
 import { logger } from "@/lib/logger/logger";
 
@@ -45,6 +45,7 @@ async function postHandler(req: Request) {
       return new Response("Email account not configured", { status: 200 });
     }
 
+    await ensureInitialized();
     const queue = container.resolve<QueueProvider>("QueueProvider");
     await queue.enqueue("history-sync", {
       emailAccountId: account.id,

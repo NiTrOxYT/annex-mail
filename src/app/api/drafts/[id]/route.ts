@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth";
-import { container } from "@/lib/di/container";
+import { container, ensureInitialized } from "@/lib/di/container";
 import { DraftRepository } from "@/repositories/draft.repository";
 import { ApiResponse } from "@/utils/api";
 import { AuthenticationError, NotFoundError } from "@/utils/errors";
@@ -28,6 +28,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     }
 
     const resolvedParams = await params;
+    await ensureInitialized();
     const draftRepo = container.resolve<DraftRepository>("DraftRepository");
     const draft = await draftRepo.findById(resolvedParams.id);
     if (!draft) {

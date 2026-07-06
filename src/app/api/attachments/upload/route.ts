@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth";
-import { container } from "@/lib/di/container";
+import { container, ensureInitialized } from "@/lib/di/container";
 import { StorageProvider } from "@/lib/storage/storage.interface";
 import { ApiResponse } from "@/utils/api";
 import { AuthenticationError, ValidationError } from "@/utils/errors";
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Save using DI resolved StorageProvider
+    await ensureInitialized();
     const storage = container.resolve<StorageProvider>("StorageProvider");
     const uniqueFilename = `${crypto.randomUUID()}_${file.name}`;
     const storagePath = `orgs/${session.user.organizationId}/attachments/${uniqueFilename}`;

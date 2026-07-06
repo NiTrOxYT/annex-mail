@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth";
-import { container } from "@/lib/di/container";
+import { container, ensureInitialized } from "@/lib/di/container";
 import { DraftRepository } from "@/repositories/draft.repository";
 import { ApiResponse } from "@/utils/api";
 import { AuthenticationError } from "@/utils/errors";
@@ -25,6 +25,7 @@ export async function GET() {
       throw new AuthenticationError("User is not authenticated");
     }
 
+    await ensureInitialized();
     const draftRepo = container.resolve<DraftRepository>("DraftRepository");
     const drafts = await draftRepo.listByOrg(session.user.organizationId);
 

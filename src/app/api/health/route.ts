@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/db";
-import { container } from "@/lib/di/container";
+import { container, ensureInitialized } from "@/lib/di/container";
 import { StorageProvider } from "@/lib/storage/storage.interface";
 import { EmailProvider } from "@/lib/email/provider.interface";
 import { appConfig } from "@/config/app";
@@ -27,6 +27,7 @@ async function probeDatabase(): Promise<{
 
 async function probeStorage(): Promise<{ status: ServiceStatus }> {
   try {
+    await ensureInitialized();
     const storage = container.resolve<StorageProvider>("StorageProvider");
     await storage.exists("health-check-probe.txt");
     return { status: "healthy" };

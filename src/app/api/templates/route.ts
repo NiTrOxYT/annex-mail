@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth";
-import { container } from "@/lib/di/container";
+import { container, ensureInitialized } from "@/lib/di/container";
 import { TemplateRepository } from "@/repositories/template.repository";
 import { ApiResponse } from "@/utils/api";
 import { AuthenticationError } from "@/utils/errors";
@@ -26,6 +26,7 @@ export async function GET() {
       throw new AuthenticationError("User is not authenticated");
     }
 
+    await ensureInitialized();
     const templateRepo =
       container.resolve<TemplateRepository>("TemplateRepository");
     const templates = await templateRepo.listByOrg(session.user.organizationId);
@@ -51,6 +52,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = createTemplateSchema.parse(body);
 
+    await ensureInitialized();
     const templateRepo =
       container.resolve<TemplateRepository>("TemplateRepository");
     const template = await templateRepo.create({

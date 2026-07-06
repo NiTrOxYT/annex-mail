@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { container } from "@/lib/di/container";
+import { container, ensureInitialized } from "@/lib/di/container";
 import { RateLimiterProvider } from "./rate-limiter.interface";
 
 export async function limitRequest(
@@ -36,6 +36,8 @@ export function withRateLimit(
   options: { keyPrefix: string; limit: number; windowMs: number },
 ) {
   return async (req: any, ...args: any[]) => {
+    // Guarantee DI container is initialized on cold starts before any resolve()
+    await ensureInitialized();
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
     const key = `${options.keyPrefix}_${ip}`;
     const result = await limitRequest(key, options.limit, options.windowMs);

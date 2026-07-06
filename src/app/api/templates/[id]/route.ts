@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth";
-import { container } from "@/lib/di/container";
+import { container, ensureInitialized } from "@/lib/di/container";
 import { TemplateRepository } from "@/repositories/template.repository";
 import { ApiResponse } from "@/utils/api";
 import { AuthenticationError, NotFoundError } from "@/utils/errors";
@@ -29,6 +29,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     }
 
     const resolvedParams = await params;
+    await ensureInitialized();
     const templateRepo =
       container.resolve<TemplateRepository>("TemplateRepository");
     const template = await templateRepo.findById(resolvedParams.id);
@@ -73,6 +74,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     }
 
     const resolvedParams = await params;
+    await ensureInitialized();
     const templateRepo =
       container.resolve<TemplateRepository>("TemplateRepository");
     const template = await templateRepo.findById(resolvedParams.id);
