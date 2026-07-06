@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signOut } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -17,10 +17,12 @@ import {
   X,
   LogOut,
   User as UserIcon,
+  PenSquare,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { GlobalComposer } from "@/components/mail/global-composer";
 
 interface User {
   name: string;
@@ -35,7 +37,9 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, user }: DashboardShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -57,10 +61,15 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
     return activeItem ? activeItem.name : "Platform";
   };
 
+  const handleComposerSent = () => {
+    // Refresh current page data after successful send
+    router.refresh();
+  };
+
   const renderSidebar = () => (
     <div className="flex h-full flex-col border-r border-zinc-800/80 bg-zinc-950 p-4 font-sans text-zinc-300">
       {/* Brand Header */}
-      <div className="mb-6 flex items-center gap-2 border-b border-zinc-800/40 px-2 py-3">
+      <div className="mb-5 flex items-center gap-2 border-b border-zinc-800/40 px-2 py-3">
         <div className="flex h-5.5 w-5.5 items-center justify-center rounded bg-zinc-100 text-xs font-bold text-zinc-950 select-none">
           A
         </div>
@@ -68,6 +77,18 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           Annex Mail
         </span>
       </div>
+
+      {/* ── Compose CTA ── */}
+      <button
+        onClick={() => {
+          setComposerOpen(true);
+          setIsMobileOpen(false);
+        }}
+        className="mb-4 flex w-full items-center gap-2.5 rounded-lg border border-zinc-700/60 bg-zinc-800/40 px-3 py-2.5 text-left text-sm font-semibold text-zinc-100 transition-all hover:border-zinc-600 hover:bg-zinc-800/70 active:scale-[0.98]"
+      >
+        <PenSquare className="h-4 w-4 text-zinc-400" />
+        Compose
+      </button>
 
       {/* Nav Links */}
       <nav className="flex-1 space-y-1">
@@ -147,6 +168,15 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Mobile compose button */}
+            <button
+              onClick={() => setComposerOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-700/60 bg-zinc-800/40 px-3 py-1.5 text-xs font-semibold text-zinc-200 transition-all hover:bg-zinc-800/70 md:hidden"
+            >
+              <PenSquare className="h-3.5 w-3.5" />
+              Compose
+            </button>
+
             <div className="hidden items-center gap-2 rounded-full border border-zinc-800/60 bg-zinc-900/40 px-3 py-1 font-mono text-xs text-zinc-400 sm:flex">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
               Active Mail Synchronization
@@ -177,6 +207,14 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           {children}
         </main>
       </div>
+
+      {/* Global Floating Composer */}
+      {composerOpen && (
+        <GlobalComposer
+          onClose={() => setComposerOpen(false)}
+          onSent={handleComposerSent}
+        />
+      )}
     </div>
   );
 }
