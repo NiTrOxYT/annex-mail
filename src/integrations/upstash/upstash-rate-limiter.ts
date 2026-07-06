@@ -1,6 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { RateLimiterProvider, RateLimitResult } from "./rate-limiter.interface";
+// @ts-nocheck
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+  RateLimiterProvider,
+  RateLimitResult,
+} from "../../lib/security/rate-limiter.interface";
 
 export class UpstashRateLimiterProvider implements RateLimiterProvider {
   private redisClient: any = null;
@@ -9,7 +13,6 @@ export class UpstashRateLimiterProvider implements RateLimiterProvider {
     if (this.redisClient) return;
 
     // Dynamically import @upstash/redis and ignore it during Next.js Turbopack build
-    // @ts-ignore
     const { Redis } = await import(
       /* turbopackIgnore: true */ "@upstash/redis"
     );
@@ -27,7 +30,6 @@ export class UpstashRateLimiterProvider implements RateLimiterProvider {
     await this.init();
 
     // Dynamically import @upstash/ratelimit and ignore it during Next.js Turbopack build
-    // @ts-ignore
     const { Ratelimit } = await import(
       /* turbopackIgnore: true */ "@upstash/ratelimit"
     );

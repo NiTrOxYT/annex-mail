@@ -58,11 +58,10 @@ export async function registerDependencies() {
   // Rate Limiter: database-backed by default, Upstash Redis if configured (loaded lazily)
   let rateLimiter;
   if (process.env.RATE_LIMIT_PROVIDER === "upstash") {
-    // @ts-ignore
-    const { UpstashRateLimiterProvider } = await import(
-      /* turbopackIgnore: true */ "@/lib/security/upstash-rate-limiter"
+    const upstashMod = await eval(
+      'import("@/integrations/upstash/upstash-rate-limiter")',
     );
-    rateLimiter = new UpstashRateLimiterProvider();
+    rateLimiter = new upstashMod.UpstashRateLimiterProvider();
   } else {
     const { DatabaseRateLimiterProvider } =
       await import("@/lib/security/database-rate-limiter");
