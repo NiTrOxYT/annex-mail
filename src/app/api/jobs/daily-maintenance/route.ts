@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { schedulerService } from "@/services/scheduler.service";
 import { withRateLimit } from "@/lib/security/rate-limiter";
+import { cronConfig } from "@/config/cron";
 
 export const dynamic = "force-dynamic";
 
 function validateCronSecret(req: NextRequest): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return false;
-  return req.headers.get("authorization") === `Bearer ${cronSecret}`;
+  if (!cronConfig.secret) return false;
+  return req.headers.get("authorization") === `Bearer ${cronConfig.secret}`;
 }
 
 async function getHandler(req: Request) {

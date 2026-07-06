@@ -1,11 +1,10 @@
 import { MailWatcher } from "../provider.interface";
 import { EmailAccount } from "@prisma/client";
 import { gmailClient } from "./gmail.client";
+import { googleConfig } from "@/config/google";
 
 export class GmailWatch implements MailWatcher {
-  private topicName =
-    process.env.GOOGLE_PUB_SUB_TOPIC ||
-    "projects/annex-mail/topics/incoming-emails";
+  private topicName = googleConfig.pubSubTopic;
 
   async watch(
     account: EmailAccount,

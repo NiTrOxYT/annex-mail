@@ -1,19 +1,16 @@
 import { z } from "zod";
+import { mailboxConfig } from "./mailbox";
 
 const emailConfigSchema = z.object({
   brevoApiKey: z.string().optional(),
   brevoSmtpLogin: z.string().optional(),
   brevoSmtpPassword: z.string().optional(),
-  fromName: z.string().default("Annex"),
-  fromAddress: z.string().email().default("business@annex-consultancy.com"),
 });
 
 const parsed = emailConfigSchema.safeParse({
   brevoApiKey: process.env.BREVO_API_KEY,
   brevoSmtpLogin: process.env.BREVO_SMTP_LOGIN,
   brevoSmtpPassword: process.env.BREVO_SMTP_PASSWORD,
-  fromName: process.env.EMAIL_FROM_NAME,
-  fromAddress: process.env.EMAIL_FROM_ADDRESS,
 });
 
 if (!parsed.success) {
@@ -22,12 +19,13 @@ if (!parsed.success) {
 
 export const emailConfig = {
   brevo: {
-    apiKey: parsed.data?.brevoApiKey || "",
-    smtpLogin: parsed.data?.brevoSmtpLogin || "",
-    smtpPassword: parsed.data?.brevoSmtpPassword || "",
+    apiKey: parsed.data?.brevoApiKey ?? "",
+    smtpLogin: parsed.data?.brevoSmtpLogin ?? "",
+    smtpPassword: parsed.data?.brevoSmtpPassword ?? "",
   },
+  /** Resolved from mailboxConfig — use this for from/reply-to headers */
   from: {
-    name: parsed.data?.fromName || "Annex",
-    address: parsed.data?.fromAddress || "business@annex-consultancy.com",
+    name: mailboxConfig.primary.name,
+    address: mailboxConfig.primary.address,
   },
 };

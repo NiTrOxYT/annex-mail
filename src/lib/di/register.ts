@@ -17,6 +17,7 @@ import { MemoryCacheProvider } from "@/lib/cache/memory-cache";
 import { EmailProviderFactory } from "@/lib/email/provider.factory";
 import { AuditService } from "@/lib/audit/audit.service";
 import { StorageFactory } from "@/lib/storage/storage.factory";
+import { appConfig } from "@/config/app";
 
 export async function registerDependencies() {
   container.register("UserRepository", new UserRepository());
@@ -42,7 +43,7 @@ export async function registerDependencies() {
 
   // Queue: database in production, memory in development (loaded lazily)
   let queue;
-  if (process.env.NODE_ENV === "production") {
+  if (appConfig.env === "production") {
     const { DatabaseQueueProvider } = await import("../queue/database-queue");
     queue = new DatabaseQueueProvider();
   } else {
@@ -56,6 +57,7 @@ export async function registerDependencies() {
   container.register("QueueProvider", queue);
 
   // Rate Limiter: database-backed by default, Upstash Redis if configured (loaded lazily)
+  // RATE_LIMIT_PROVIDER is an infrastructure bootstrap flag — read directly here intentionally
   let rateLimiter;
   if (process.env.RATE_LIMIT_PROVIDER === "upstash") {
     const upstashMod = await eval(

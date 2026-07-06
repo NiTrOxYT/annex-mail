@@ -5,6 +5,8 @@ import { db } from "@/lib/db/db";
 import { APP_VERSION } from "@/config/version";
 import { appConfig } from "@/config/app";
 import { storageConfig } from "@/config/storage";
+import { googleConfig } from "@/config/google";
+import { emailConfig } from "@/config/email";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -55,12 +57,12 @@ export default async function AdminSystemPage() {
     .catch(() => []);
 
   const googleOAuthStatus =
-    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    googleConfig.clientId && googleConfig.clientSecret
       ? "Configured"
       : "Missing Credentials";
 
   const brevoStatus =
-    process.env.BREVO_API_KEY && process.env.BREVO_SMTP_LOGIN
+    emailConfig.brevo.apiKey && emailConfig.brevo.smtpLogin
       ? "Configured"
       : "Missing Credentials";
 

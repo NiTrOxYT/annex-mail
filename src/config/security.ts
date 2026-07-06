@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const securityConfigSchema = z.object({
+  encryptionKey: z.string().default("default_super_secret_key_for_aes_gcm"),
   rateLimitMaxRequests: z.coerce.number().default(100),
   rateLimitWindowMs: z.coerce.number().default(15 * 60 * 1000), // 15 minutes
   sessionMaxAge: z.coerce.number().default(24 * 60 * 60), // 24 hours in seconds
@@ -12,6 +13,7 @@ const securityConfigSchema = z.object({
 });
 
 const parsed = securityConfigSchema.safeParse({
+  encryptionKey: process.env.ENCRYPTION_KEY,
   rateLimitMaxRequests: process.env.SECURITY_RATE_LIMIT_MAX,
   rateLimitWindowMs: process.env.SECURITY_RATE_LIMIT_WINDOW_MS,
   sessionMaxAge: process.env.SECURITY_SESSION_MAX_AGE,
@@ -29,6 +31,8 @@ if (!parsed.success) {
 }
 
 export const securityConfig = {
+  encryptionKey:
+    parsed.data?.encryptionKey ?? "default_super_secret_key_for_aes_gcm",
   rateLimit: {
     maxRequests: parsed.data?.rateLimitMaxRequests ?? 100,
     windowMs: parsed.data?.rateLimitWindowMs ?? 15 * 60 * 1000,

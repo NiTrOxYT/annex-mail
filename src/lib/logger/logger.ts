@@ -14,7 +14,9 @@ export interface LogPayload {
   metadata?: Record<string, unknown>;
 }
 
-const isProduction = process.env.NODE_ENV === "production";
+import { appConfig } from "@/config/app";
+
+const isProduction = appConfig.env === "production";
 
 class Logger {
   private write(level: LogLevel, payload: LogPayload) {

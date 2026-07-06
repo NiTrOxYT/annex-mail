@@ -1,8 +1,9 @@
 import { auth } from "@/lib/auth/auth";
 import { ApiResponse } from "@/utils/api";
 import { AuthenticationError } from "@/utils/errors";
-
 import { withRateLimit } from "@/lib/security/rate-limiter";
+import { googleConfig } from "@/config/google";
+import { appConfig } from "@/config/app";
 
 async function postHandler() {
   try {
@@ -16,11 +17,8 @@ async function postHandler() {
       throw new AuthenticationError("User is not authenticated");
     }
 
-    const clientId =
-      process.env.GOOGLE_CLIENT_ID || "google_client_id_placeholder";
-    const redirectUri = `${
-      process.env.NEXTAUTH_URL || "http://localhost:3000"
-    }/api/gmail/callback`;
+    const clientId = googleConfig.clientId;
+    const redirectUri = `${appConfig.url}/api/gmail/callback`;
     const scopes = [
       "https://www.googleapis.com/auth/gmail.readonly",
       "https://www.googleapis.com/auth/gmail.modify",

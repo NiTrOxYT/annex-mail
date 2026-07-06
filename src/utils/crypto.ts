@@ -1,11 +1,12 @@
 import crypto from "crypto";
-
-const ENCRYPTION_KEY =
-  process.env.ENCRYPTION_KEY || "default_super_secret_key_for_aes_gcm";
+import { securityConfig } from "@/config/security";
 
 // Hash key to guarantee exactly 32 bytes for AES-256
 const getSecretKey = (): Buffer => {
-  return crypto.createHash("sha256").update(ENCRYPTION_KEY).digest();
+  return crypto
+    .createHash("sha256")
+    .update(securityConfig.encryptionKey)
+    .digest();
 };
 
 export function encrypt(text: string): string {

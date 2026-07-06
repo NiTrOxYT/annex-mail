@@ -2,12 +2,11 @@ import { EmailAccount } from "@prisma/client";
 import { decrypt, encrypt } from "@/utils/crypto";
 import { db } from "@/lib/db/db";
 import { logger } from "@/lib/logger/logger";
+import { googleConfig } from "@/config/google";
 
 export class GmailClient {
-  private clientId =
-    process.env.GOOGLE_CLIENT_ID || "google_client_id_placeholder";
-  private clientSecret =
-    process.env.GOOGLE_CLIENT_SECRET || "google_client_secret_placeholder";
+  private clientId = googleConfig.clientId;
+  private clientSecret = googleConfig.clientSecret;
 
   async getAccessToken(account: EmailAccount): Promise<string> {
     if (!account.encryptedAccessToken || !account.expiresAt) {
@@ -78,14 +77,6 @@ export class GmailClient {
     url: string,
     options: RequestInit = {},
   ): Promise<Response> {
-    if (
-      this.clientId === "google_client_id_placeholder" ||
-      account.encryptedAccessToken === "placeholder"
-    ) {
-      // Return a simulated response when no key matches
-      return new Response(JSON.stringify({ simulated: true }));
-    }
-
     const token = await this.getAccessToken(account);
     const headers = new Headers(options.headers);
     headers.set("Authorization", `Bearer ${token}`);

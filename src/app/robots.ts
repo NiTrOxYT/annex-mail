@@ -1,8 +1,8 @@
 import { MetadataRoute } from "next";
+import { appConfig } from "@/config/app";
 
 export default function robots(): MetadataRoute.Robots {
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://mail.annex-consultancy.com";
+  const appUrl = appConfig.url;
   return {
     rules: [
       {

@@ -1,22 +1,22 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { StorageProvider } from "./storage.interface";
+import { supabaseConfig } from "@/config/supabase";
 
 export class SupabaseStorageProvider implements StorageProvider {
   private client: SupabaseClient;
   private bucket: string;
 
   constructor() {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    this.bucket = process.env.SUPABASE_STORAGE_BUCKET ?? "attachments";
+    const { url, serviceRoleKey, storageBucket } = supabaseConfig;
 
-    if (!url || !key) {
+    if (!url || !serviceRoleKey) {
       throw new Error(
-        "SupabaseStorageProvider: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.",
+        "SupabaseStorageProvider: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.",
       );
     }
 
-    this.client = createClient(url, key);
+    this.client = createClient(url, serviceRoleKey);
+    this.bucket = storageBucket;
   }
 
   async upload(filePath: string, content: Buffer | string): Promise<string> {

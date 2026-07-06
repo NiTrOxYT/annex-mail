@@ -5,6 +5,8 @@ import { StorageProvider } from "@/lib/storage/storage.interface";
 import { EmailProvider } from "@/lib/email/provider.interface";
 import { appConfig } from "@/config/app";
 import { APP_VERSION } from "@/config/version";
+import { googleConfig } from "@/config/google";
+import { emailConfig } from "@/config/email";
 
 type ServiceStatus = "healthy" | "degraded" | "unavailable";
 
@@ -72,12 +74,12 @@ export async function GET() {
   ]);
 
   const googleOAuth: ServiceStatus =
-    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    googleConfig.clientId && googleConfig.clientSecret
       ? "healthy"
       : "unavailable";
 
   const brevo: ServiceStatus =
-    process.env.BREVO_API_KEY && process.env.BREVO_SMTP_LOGIN
+    emailConfig.brevo.apiKey && emailConfig.brevo.smtpLogin
       ? "healthy"
       : "unavailable";
 
