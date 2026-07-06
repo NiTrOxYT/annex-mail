@@ -81,6 +81,15 @@ export async function GET() {
       ? "healthy"
       : "unavailable";
 
+  // Fetch scheduler metadata logs
+  const metadata = await db.systemMetadata.findMany().catch(() => []);
+  const metaMap = new Map(metadata.map((m) => [m.key, m.value]));
+
+  const lastDailyMaintenance = metaMap.get("last_daily_maintenance") || null;
+  const lastWatchRenewal = metaMap.get("last_watch_renewal") || null;
+  const lastQueueCleanup = metaMap.get("last_queue_cleanup") || null;
+  const lastHistorySync = metaMap.get("last_history_sync") || null;
+
   // Database unavailable = unhealthy. Others degrade gracefully.
   const isHealthy = dbResult.status !== "unavailable";
 
@@ -98,6 +107,12 @@ export async function GET() {
         authentication: { status: "healthy" as ServiceStatus },
         googleOAuth: { status: googleOAuth },
         brevo: { status: brevo },
+      },
+      scheduler: {
+        lastDailyMaintenance,
+        lastWatchRenewal,
+        lastQueueCleanup,
+        lastHistorySync,
       },
     },
     { status: isHealthy ? 200 : 503 },

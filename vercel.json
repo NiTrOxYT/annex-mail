@@ -3,16 +3,8 @@
   "buildCommand": "prisma generate && next build",
   "crons": [
     {
-      "path": "/api/jobs/history-sync",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/jobs/watch-renew",
-      "schedule": "0 */12 * * *"
-    },
-    {
-      "path": "/api/jobs/retry-failed",
-      "schedule": "*/15 * * * *"
+      "path": "/api/jobs/daily-maintenance",
+      "schedule": "0 3 * * *"
     }
   ]
 }

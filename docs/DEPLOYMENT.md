@@ -94,3 +94,27 @@ SUPABASE_URL="https://xxxx.supabase.co"
 SUPABASE_SERVICE_ROLE_KEY="xxxx"
 SUPABASE_STORAGE_BUCKET="attachments"
 ```
+
+---
+
+## 6. Vercel Hobby Cron & Scaling Sync Frequencies
+
+### Hobby Plan Limitations
+The Vercel Hobby tier restricts cron executions to **one execution per day**. Annex Mail is pre-configured with a single daily maintenance orchestrator path:
+- **Path**: `/api/jobs/daily-maintenance`
+- **Schedule**: `0 3 * * *` (Runs daily at 03:00 UTC)
+
+This orchestrates Gmail watch renewals, failed job retries, incremental history syncs, and expired session/queue cleanup sequentially.
+
+### Scaling to Higher Frequencies
+For real-time or higher frequency synchronization (e.g. sync every 5 minutes), select one of the following scaling options:
+1. **Vercel Pro**: Upgrade to Vercel Pro which allows up to 20 cron routes executing as frequently as every minute.
+2. **GitHub Actions**: Configure a recurring workflow (`.github/workflows/sync.yml`) triggered on cron intervals:
+   ```yaml
+   on:
+     schedule:
+       - cron: '*/5 * * * *'
+   ```
+   Hiting `/api/jobs/daily-maintenance` (or separate logic blocks) via curl.
+3. **Cloudflare Workers Cron**: Deploy a lightweight Cloudflare Worker with a Cron Trigger targeting the daily-maintenance webhook path on interval schedules.
+

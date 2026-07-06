@@ -310,3 +310,12 @@ model RateLimit {
   @@map("rate_limits")
 }
 
+model SystemMetadata {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_metadata")
+}
+
+
