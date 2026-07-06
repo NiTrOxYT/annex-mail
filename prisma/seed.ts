@@ -9,10 +9,20 @@
  *   npx tsx prisma/seed.ts
  */
 
+import "dotenv/config";
 import { PrismaClient, Role } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 import bcrypt from "bcryptjs";
 
-const db = new PrismaClient();
+const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("Neither DIRECT_URL nor DATABASE_URL is set in environment.");
+}
+
+const pool = new pg.Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const db = new PrismaClient({ adapter });
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -22,7 +32,7 @@ const SEED_ORG_NAME = "Annex Consultancy";
 const SEED_ORG_SLUG = "annex-consultancy";
 const SEED_USER_EMAIL = "business@annex-consultancy.com";
 const SEED_USER_NAME = "Annex Admin";
-const SEED_USER_PASSWORD = process.env.SEED_PASSWORD ?? "ChangeMe123!";
+const INITIAL_OWNER_PASSWORD = process.env.INITIAL_OWNER_PASSWORD;
 
 const SYSTEM_LABELS = [
   { name: "Inbox", color: "#4285F4" },
@@ -122,7 +132,13 @@ async function seedUser(orgId: string) {
     return existing;
   }
 
-  const passwordHash = await bcrypt.hash(SEED_USER_PASSWORD, 10);
+  if (!INITIAL_OWNER_PASSWORD || INITIAL_OWNER_PASSWORD.length < 8) {
+    throw new Error(
+      "INITIAL_OWNER_PASSWORD environment variable must be set and at least 8 characters long to create the initial OWNER account."
+    );
+  }
+
+  const passwordHash = await bcrypt.hash(INITIAL_OWNER_PASSWORD, 10);
 
   const user = await db.user.create({
     data: {
@@ -136,9 +152,6 @@ async function seedUser(orgId: string) {
   });
 
   console.log(`  ✓ Created user: ${user.email} (${user.id})`);
-  console.log(
-    `  ⚠  Default password is set via SEED_PASSWORD env var (default: ChangeMe123!)`
-  );
   return user;
 }
 
@@ -243,4 +256,7 @@ main()
     console.error("❌ Seed failed:", err);
     process.exit(1);
   })
-  .finally(() => db.$disconnect());
+  .finally(async () => {
+    await db.$disconnect();
+    await pool.end();
+  });

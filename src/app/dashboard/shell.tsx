@@ -149,7 +149,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           <div className="flex items-center gap-4">
             <div className="hidden items-center gap-2 rounded-full border border-zinc-800/60 bg-zinc-900/40 px-3 py-1 font-mono text-xs text-zinc-400 sm:flex">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
-              Connected to Brevo & Gmail (Mock)
+              Active Mail Synchronization
             </div>
           </div>
         </header>
