@@ -1,78 +1,115 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Send, Reply, Layout, Users, Activity } from "lucide-react";
+import {
+  Mail,
+  Send,
+  Layout,
+  Users,
+  Activity,
+  AlertCircle,
+  Clock,
+} from "lucide-react";
+import { db } from "@/lib/db/db";
+import { auth } from "@/lib/auth/auth";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Dashboard - Annex Mail",
 };
 
-export default function DashboardPage() {
-  // Temporary mock data for metrics
+export default async function DashboardPage() {
+  const session = await auth();
+  if (!session || !session.user || !session.user.organizationId) {
+    redirect("/login");
+  }
+
+  const orgId = session.user.organizationId;
+
+  // Real database counts
+  const draftsCount = await db.draft.count({
+    where: { organizationId: orgId },
+  });
+
+  const templatesCount = await db.template.count({
+    where: { organizationId: orgId },
+  });
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const sentTodayCount = await db.message.count({
+    where: {
+      conversation: { organizationId: orgId },
+      direction: "OUTBOUND",
+      createdAt: { gte: today },
+    },
+  });
+
+  const failedCount = await db.message.count({
+    where: {
+      conversation: { organizationId: orgId },
+      deliveryStatus: "FAILED",
+    },
+  });
+
+  const pendingCount = await db.message.count({
+    where: {
+      conversation: { organizationId: orgId },
+      deliveryStatus: "QUEUED",
+    },
+  });
+
+  const teamCount = await db.member.count({
+    where: { organizationId: orgId },
+  });
+
   const metrics = [
     {
-      title: "Unread Messages",
-      value: "12",
-      description: "Requires attention",
+      title: "Drafts Count",
+      value: String(draftsCount),
+      description: "Saved layouts",
       icon: Mail,
     },
     {
       title: "Sent Today",
-      value: "28",
+      value: String(sentTodayCount),
       description: "Outgoing team count",
       icon: Send,
     },
     {
-      title: "Pending Replies",
-      value: "4",
-      description: "Assigned to you",
-      icon: Reply,
+      title: "Failed Emails",
+      value: String(failedCount),
+      description: "Transmission failures",
+      icon: AlertCircle,
+    },
+    {
+      title: "Pending Queue",
+      value: String(pendingCount),
+      description: "Queued deliveries",
+      icon: Clock,
     },
     {
       title: "Active Templates",
-      value: "16",
+      value: String(templatesCount),
       description: "Reusable email blueprints",
       icon: Layout,
     },
     {
       title: "Team Members",
-      value: "5",
+      value: String(teamCount),
       description: "Collaborating now",
       icon: Users,
     },
   ];
 
-  // Mock activity logs
+  // Dynamic audit logs from console/mock actions
   const activityLogs = [
     {
       id: "1",
       action: "LOGIN_SUCCESS",
-      user: "owner@annex.com",
-      message: "Owner authenticated successfully",
-      time: "2 mins ago",
+      user: session.user.email || "user@annex.com",
+      message: `${session.user.name || "User"} authenticated successfully`,
+      time: "Just now",
       color: "text-emerald-400 bg-emerald-500/10",
-    },
-    {
-      id: "2",
-      action: "USER_UPDATED",
-      user: "admin@annex.com",
-      message: "Updated profile details",
-      time: "15 mins ago",
-      color: "text-blue-400 bg-blue-500/10",
-    },
-    {
-      id: "3",
-      action: "LOGIN_SUCCESS",
-      user: "employee@annex.com",
-      message: "Employee authenticated successfully",
-      time: "1 hour ago",
-      color: "text-emerald-400 bg-emerald-500/10",
-    },
-    {
-      id: "4",
-      action: "USER_CREATED",
-      user: "system",
-      message: "Created user account client-support@annex-consultancy.com",
-      time: "1 day ago",
-      color: "text-purple-400 bg-purple-500/10",
     },
   ];
 
@@ -80,16 +117,16 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-7xl space-y-8">
       {/* Greetings */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
+        <h1 className="font-sans text-2xl font-semibold tracking-tight text-zinc-100">
           Overview
         </h1>
-        <p className="mt-1 text-sm text-zinc-400">
+        <p className="mt-1 font-sans text-sm text-zinc-400">
           Welcome back. Here is the operational status of Annex Mail.
         </p>
       </div>
 
       {/* Grid Metrics */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         {metrics.map((metric) => {
           const Icon = metric.icon;
           return (

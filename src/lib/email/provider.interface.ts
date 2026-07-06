@@ -9,6 +9,7 @@ export interface SendEmailOptions {
     content: Buffer | string;
     contentType?: string;
   }[];
+  headers?: Record<string, string>;
 }
 
 export interface EmailMessage {
@@ -30,7 +31,7 @@ export interface EmailProvider {
   send(options: SendEmailOptions): Promise<{ messageId: string }>;
   reply(
     threadId: string,
-    options: Omit<SendEmailOptions, "subject">,
+    options: Omit<SendEmailOptions, "subject"> & { subject?: string },
   ): Promise<{ messageId: string }>;
   forward(
     messageId: string,

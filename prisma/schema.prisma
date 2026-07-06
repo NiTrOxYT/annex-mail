@@ -13,26 +13,53 @@ enum Role {
   READONLY
 }
 
+enum ConversationStatus {
+  OPEN
+  PENDING
+  ARCHIVED
+  CLOSED
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+}
+
 model User {
-  id           String    @id @default(cuid())
+  id           String     @id @default(cuid())
   name         String?
-  email        String    @unique
+  email        String     @unique
   passwordHash String?
   avatar       String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   memberships  Member[]
   sessions     Session[]
+  messages     Message[]
+  drafts       Draft[]
+  templates    Template[]
 
   @@map("users")
 }
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  members   Member[]
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  createdAt     DateTime       @default(now())
+  members       Member[]
+  emailAccounts EmailAccount[]
+  conversations Conversation[]
+  drafts        Draft[]
+  templates     Template[]
+  labels        Label[]
 
   @@map("organizations")
 }
@@ -60,10 +87,189 @@ model Session {
 }
 
 model VerificationToken {
+  id         String   @id @default(cuid())
   identifier String
   token      String   @unique
   expires    DateTime
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model EmailAccount {
+  id                    String         @id @default(cuid())
+  organizationId        String
+  organization          Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider              String
+  displayName           String
+  email                 String         @unique
+  encryptedAccessToken  String?
+  encryptedRefreshToken String?
+  expiresAt             DateTime?
+  status                String         @default("ACTIVE")
+  isPrimary             Boolean        @default(false)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  conversations         Conversation[]
+  watchState            WatchState?
+  syncState             SyncState?
+
+  @@map("email_accounts")
+}
+
+model WatchState {
+  id             String       @id @default(cuid())
+  emailAccountId String       @unique
+  emailAccount   EmailAccount @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
+  expiration     DateTime
+  resourceId     String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("watch_states")
+}
+
+model SyncState {
+  id                 String       @id @default(cuid())
+  emailAccountId     String       @unique
+  emailAccount       EmailAccount @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
+  historyId          String?
+  lastSuccessfulSync DateTime?
+  lastAttempt        DateTime?
+  status             String       @default("IDLE")
+
+  @@map("sync_states")
+}
+
+model Conversation {
+  id             String             @id @default(cuid())
+  organizationId String
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  accountId      String
+  account        EmailAccount       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  subject        String
+  threadKey      String?            @unique
+  status         ConversationStatus @default(OPEN)
+  lastMessageAt  DateTime           @default(now())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  deletedAt      DateTime?
+  messages       Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id                String           @id @default(cuid())
+  conversationId    String
+  conversation      Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  provider          String           @default("internal")
+  providerMessageId String?
+  providerThreadId  String?
+  internetMessageId String           @unique @map("messageId")
+  threadKey         String?
+  providerData      Json?
+  snippet           String?
+  headers           Json?
+  rawSize           Int?
+  checksum          String?
+  hasAttachments    Boolean          @default(false)
+  isRead            Boolean          @default(false)
+  isStarred         Boolean          @default(false)
+  isImportant       Boolean          @default(false)
+  isDraft           Boolean          @default(false)
+  internalDate      DateTime?
+  inReplyTo         String?
+  references        String?
+  direction         MessageDirection
+  sender            String
+  recipients        String[]
+  cc                String[]
+  bcc               String[]
+  subject           String
+  htmlBody          String?
+  textBody          String?
+  deliveryStatus    DeliveryStatus   @default(QUEUED)
+  sentByUserId      String?
+  sentByUser        User?            @relation(fields: [sentByUserId], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+  attachments       Attachment[]
+  labels            MessageLabel[]
+
+  @@map("messages")
+}
+
+model Attachment {
+  id              String   @id @default(cuid())
+  messageId       String
+  message         Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  filename        String
+  mimeType        String
+  size            Int
+  storageProvider String
+  storagePath     String
+  createdAt       DateTime @default(now())
+
+  @@map("attachments")
+}
+
+model MessageLabel {
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  labelId   String
+  label     Label   @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, labelId])
+  @@map("message_labels")
+}
+
+model Label {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  providerId     String?
+  name           String
+  color          String         @default("#555555")
+  visibility     String         @default("SHOW")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  messages       MessageLabel[]
+
+  @@unique([organizationId, name])
+  @@map("labels")
+}
+
+model Draft {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  to             String[]
+  cc             String[]
+  bcc            String[]
+  subject        String?
+  html           String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("drafts")
+}
+
+model Template {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  category       String
+  description    String?
+  subject        String
+  html           String
+  variables      String[]
+  createdBy      String
+  creator        User         @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("templates")
 }
