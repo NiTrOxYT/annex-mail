@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgres?schema=public"
+      DIRECT_URL: "postgresql://postgres:postgres@localhost:5432/postgres"
+      AUTH_SECRET: "ci_auth_secret_placeholder_must_be_long_and_secure"
+      ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      GOOGLE_CLIENT_ID: "google_client_id_ci_placeholder"
+      GOOGLE_CLIENT_SECRET: "google_client_secret_ci_placeholder"
+      BREVO_API_KEY: "brevo_api_key_ci_placeholder"
+      BREVO_SMTP_LOGIN: "brevo_smtp_login_ci_placeholder"
+      BREVO_SMTP_PASSWORD: "brevo_smtp_password_ci_placeholder"
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      CRON_SECRET: "cron_secret_ci_placeholder"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint check
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run Vitest Unit Tests
+        run: npm run test
+
+      - name: Run Standalone Unit Tests
+        run: |
+          npx tsx tests/unit/normalizer.test.ts
+          npx tsx tests/unit/queue.test.ts
+          npx tsx tests/unit/mail.test.ts
+
+      - name: Build Application
+        run: npm run build

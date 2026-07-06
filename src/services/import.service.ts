@@ -7,6 +7,8 @@ import { db } from "@/lib/db/db";
 import { MessageDirection, DeliveryStatus, Prisma } from "@prisma/client";
 import crypto from "crypto";
 
+import { sanitizeHtml } from "@/lib/security/sanitizer";
+
 export class ImportService {
   async importMessage(
     emailAccountId: string,
@@ -48,6 +50,8 @@ export class ImportService {
       ? MessageDirection.OUTBOUND
       : MessageDirection.INBOUND;
 
+    const sanitizedHtml = msg.htmlBody ? sanitizeHtml(msg.htmlBody) : null;
+
     const created = await db.message.create({
       data: {
         conversationId,
@@ -75,7 +79,7 @@ export class ImportService {
         cc: msg.cc,
         bcc: msg.bcc,
         subject: msg.subject,
-        htmlBody: msg.htmlBody,
+        htmlBody: sanitizedHtml,
         textBody: msg.textBody,
         deliveryStatus: DeliveryStatus.DELIVERED,
       },

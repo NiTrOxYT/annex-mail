@@ -14,9 +14,12 @@ import { MailService } from "@/services/mail.service";
 import { logger } from "@/lib/logger/logger";
 import { MemoryCacheProvider } from "@/lib/cache/memory-cache";
 import { LocalStorageProvider } from "@/lib/storage/local-storage";
+import { SupabaseStorageProvider } from "@/lib/storage/supabase-storage";
 import { MemoryQueue } from "@/lib/queue/memory-queue";
+import { DatabaseQueueProvider } from "@/lib/queue/database-queue";
 import { EmailProviderFactory } from "@/lib/email/provider.factory";
 import { AuditService } from "@/lib/audit/audit.service";
+import { storageConfig } from "@/config/storage";
 
 export function registerDependencies() {
   container.register("UserRepository", new UserRepository());
@@ -33,8 +36,20 @@ export function registerDependencies() {
   container.register("MailService", new MailService());
   container.register("Logger", logger);
   container.register("CacheProvider", new MemoryCacheProvider());
-  container.register("StorageProvider", new LocalStorageProvider());
-  container.register("QueueProvider", new MemoryQueue());
-  container.register("EmailProvider", EmailProviderFactory.getProvider());
   container.register("AuditService", new AuditService());
+  container.register("EmailProvider", EmailProviderFactory.getProvider());
+
+  // Storage: supabase in production, local in development
+  const storage =
+    storageConfig.provider === "supabase"
+      ? new SupabaseStorageProvider()
+      : new LocalStorageProvider();
+  container.register("StorageProvider", storage);
+
+  // Queue: database in production, memory in development
+  const queue =
+    process.env.NODE_ENV === "production"
+      ? new DatabaseQueueProvider()
+      : new MemoryQueue();
+  container.register("QueueProvider", queue);
 }

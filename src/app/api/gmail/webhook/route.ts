@@ -3,7 +3,9 @@ import { container } from "@/lib/di/container";
 import { QueueProvider } from "@/lib/queue/queue.interface";
 import { logger } from "@/lib/logger/logger";
 
-export async function POST(req: Request) {
+import { withRateLimit } from "@/lib/security/rate-limiter";
+
+async function postHandler(req: Request) {
   try {
     const body = (await req.json()) as {
       message?: { data?: string };
@@ -57,3 +59,9 @@ export async function POST(req: Request) {
     return new Response("Internal server error", { status: 500 });
   }
 }
+
+export const POST = withRateLimit(postHandler, {
+  keyPrefix: "gmail_webhook",
+  limit: 200, // higher limit since webhook pushes can be bursty
+  windowMs: 60 * 1000,
+});

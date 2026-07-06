@@ -73,6 +73,7 @@ model Member {
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, userId])
+  @@index([userId])
   @@map("members")
 }
 
@@ -83,6 +84,7 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expires      DateTime
 
+  @@index([userId])
   @@map("sessions")
 }
 
@@ -156,6 +158,8 @@ model Conversation {
   deletedAt      DateTime?
   messages       Message[]
 
+  @@index([organizationId, status, lastMessageAt])
+  @@index([accountId])
   @@map("conversations")
 }
 
@@ -196,6 +200,10 @@ model Message {
   attachments       Attachment[]
   labels            MessageLabel[]
 
+  @@index([conversationId, internalDate])
+  @@index([providerMessageId])
+  @@index([internetMessageId])
+  @@index([sentByUserId])
   @@map("messages")
 }
 
@@ -210,6 +218,7 @@ model Attachment {
   storagePath     String
   createdAt       DateTime @default(now())
 
+  @@index([messageId])
   @@map("attachments")
 }
 
@@ -236,6 +245,7 @@ model Label {
   messages       MessageLabel[]
 
   @@unique([organizationId, name])
+  @@index([organizationId])
   @@map("labels")
 }
 
@@ -253,6 +263,7 @@ model Draft {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, userId])
   @@map("drafts")
 }
 
@@ -271,5 +282,31 @@ model Template {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId])
   @@map("templates")
 }
+
+model JobRecord {
+  id          String   @id @default(cuid())
+  name        String
+  data        Json
+  status      String   @default("queued")
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([name, status])
+  @@map("job_records")
+}
+
+model RateLimit {
+  key       String   @id
+  points    Int      @default(0)
+  resetTime DateTime
+
+  @@map("rate_limits")
+}
+

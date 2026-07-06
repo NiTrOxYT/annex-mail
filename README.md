@@ -46,3 +46,14 @@ npm run build      # Verify compilation
 ```
 
 Pre-commit hooks are configured to automate these validations on changes using Husky and lint-staged.
+
+## Hardened Production Documentation
+
+For operations, configurations, and specs, refer to:
+- [Deployment Guide](file:///Users/sourik/projects/annex-mail/docs/DEPLOYMENT.md)
+- [Operations Manual](file:///Users/sourik/projects/annex-mail/docs/OPERATIONS.md)
+- [Incident Response Runbooks](file:///Users/sourik/projects/annex-mail/docs/RUNBOOK.md)
+- [API Specification](file:///Users/sourik/projects/annex-mail/docs/API.md)
+- [Database Schema & Performance](file:///Users/sourik/projects/annex-mail/docs/DATABASE.md)
+- [System Architecture](file:///Users/sourik/projects/annex-mail/ARCHITECTURE.md)
+

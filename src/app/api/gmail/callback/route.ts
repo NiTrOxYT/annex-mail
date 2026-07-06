@@ -5,7 +5,9 @@ import { syncService } from "@/services/sync.service";
 import { redirect } from "next/navigation";
 import { logger } from "@/lib/logger/logger";
 
-export async function GET(req: Request) {
+import { withRateLimit } from "@/lib/security/rate-limiter";
+
+async function getHandler(req: Request) {
   const session = await auth();
   if (
     !session ||
@@ -104,3 +106,9 @@ export async function GET(req: Request) {
     });
   }
 }
+
+export const GET = withRateLimit(getHandler, {
+  keyPrefix: "gmail_callback",
+  limit: 20,
+  windowMs: 60 * 1000,
+});

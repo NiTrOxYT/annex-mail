@@ -43,11 +43,25 @@ Core services interact with cached parameters and file assets via abstract inter
 
 ### 7. Centralized Logging & Audit Trail
 Logging is split into two pathways:
-- **Central Logger**: Console logging utilizing level checks (`info`, `warn`, `error`) and tag grouping.
+- **Central Logger**: Console logging utilizing level checks (`info`, `warn`, `error`) and tag grouping, supporting structured JSON logs in production.
 - **Audit Service**: Segregates developer/security audit entries (machine-readable, payload metadata, IP, user context) from human-readable activity statements (user-facing actions log).
+
+### 8. Observability & Sentry Hardening
+- Sentry error monitoring is configured across client, server, and edge runtimes via environment variables (`Sentry.init`).
+- An owner-exclusive Observability console at `/admin/system` displays real-time health statistics: DB latencies, Storage Provider mapping, Gmail Webhook watches, and active queue jobs.
+
+### 9. Rate Limiting Middleware
+- Core APIs are wrapped inside a sliding-window rate limiter helper (`withRateLimit`), which defaults to a self-contained database-backed rate-limiter, or routes requests through Upstash Redis when configured.
 
 ## Directory Structure
 Detailed file organization guidelines are documented inside `docs/FOLDER_STRUCTURE.md`.
 Conventions, conventions, formatting, and standard validations are detailed inside `docs/CONVENTIONS.md`.
 API standard formats and error checks are mapped in `docs/API_GUIDELINES.md`.
 Security checks and policies reside inside `docs/SECURITY.md`.
+For comprehensive deployment and operational details, see the files under the `docs/` folder:
+- `docs/DEPLOYMENT.md` — Setup for Supabase, GCP Pub/Sub, DNS, and Brevo SMTP.
+- `docs/OPERATIONS.md` — Token decryption recovery, key rotation procedures.
+- `docs/RUNBOOK.md` — Sync delay fixes, failed job queue retries.
+- `docs/API.md` — Pub/Sub webhook payloads and private Cron triggers.
+- `docs/DATABASE.md` — Performance indexing metrics.
+

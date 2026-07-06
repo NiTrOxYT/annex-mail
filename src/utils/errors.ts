@@ -65,3 +65,9 @@ export class ExternalServiceError extends AppError {
     super(message, "EXTERNAL_SERVICE_ERROR", 502, details);
   }
 }
+
+export class RateLimitError extends AppError {
+  constructor(message: string = "Too many requests. Please try again later.") {
+    super(message, "RATE_LIMIT_ERROR", 429);
+  }
+}

@@ -2,7 +2,9 @@ import { auth } from "@/lib/auth/auth";
 import { ApiResponse } from "@/utils/api";
 import { AuthenticationError } from "@/utils/errors";
 
-export async function POST() {
+import { withRateLimit } from "@/lib/security/rate-limiter";
+
+async function postHandler() {
   try {
     const session = await auth();
     if (
@@ -37,3 +39,9 @@ export async function POST() {
     return ApiResponse.failure(err);
   }
 }
+
+export const POST = withRateLimit(postHandler, {
+  keyPrefix: "gmail_connect",
+  limit: 20,
+  windowMs: 60 * 1000,
+});

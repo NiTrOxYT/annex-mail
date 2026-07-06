@@ -5,6 +5,8 @@ import { ApiResponse } from "@/utils/api";
 import { AuthenticationError } from "@/utils/errors";
 import { z } from "zod";
 
+import { withRateLimit } from "@/lib/security/rate-limiter";
+
 const sendSchema = z.object({
   accountId: z.string(),
   to: z.array(z.string().email()),
@@ -25,7 +27,7 @@ const sendSchema = z.object({
     .optional(),
 });
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   try {
     const session = await auth();
     if (!session || !session.user || !session.user.id) {
@@ -62,3 +64,9 @@ export async function POST(req: Request) {
     return ApiResponse.failure(err);
   }
 }
+
+export const POST = withRateLimit(postHandler, {
+  keyPrefix: "mail_send",
+  limit: 30,
+  windowMs: 60 * 1000,
+});

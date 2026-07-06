@@ -5,13 +5,15 @@ import { ApiResponse } from "@/utils/api";
 import { AuthenticationError } from "@/utils/errors";
 import { z } from "zod";
 
+import { withRateLimit } from "@/lib/security/rate-limiter";
+
 const forwardSchema = z.object({
   originalMessageId: z.string(),
   to: z.array(z.string().email()),
   comment: z.string().optional(),
 });
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   try {
     const session = await auth();
     if (!session || !session.user || !session.user.id) {
@@ -43,3 +45,9 @@ export async function POST(req: Request) {
     return ApiResponse.failure(err);
   }
 }
+
+export const POST = withRateLimit(postHandler, {
+  keyPrefix: "mail_forward",
+  limit: 30,
+  windowMs: 60 * 1000,
+});

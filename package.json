@@ -9,6 +9,8 @@
     "lint": "eslint src",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,css}\"",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -25,14 +27,19 @@
     "@hookform/resolvers": "^5.4.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@sentry/nextjs": "^10.63.0",
+    "@supabase/supabase-js": "^2.109.0",
     "@tanstack/react-query": "^5.101.2",
     "@tiptap/extension-image": "^3.27.2",
     "@tiptap/extension-link": "^3.27.2",
     "@tiptap/react": "^3.27.2",
     "@tiptap/starter-kit": "^3.27.2",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "isomorphic-dompurify": "^3.18.0",
     "lucide-react": "^1.23.0",
     "next": "16.2.10",
     "next-auth": "^5.0.0-beta.31",
@@ -47,6 +54,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
@@ -62,6 +70,7 @@
     "prettier-plugin-tailwindcss": "^0.8.0",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }
