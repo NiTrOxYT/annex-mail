@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth/auth";
 import { db } from "@/lib/db/db";
 import { encrypt } from "@/utils/crypto";
 import { syncService } from "@/services/sync.service";
-import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger/logger";
 import { withRateLimit } from "@/lib/security/rate-limiter";
 import { googleConfig } from "@/config/google";
@@ -186,7 +186,7 @@ async function getHandler(req: Request) {
     });
 
     logger.info("[OAuth] Redirecting user to settings", "GmailCallback");
-    return redirect("/dashboard/settings");
+    return NextResponse.redirect(new URL("/dashboard/settings", req.url));
   } catch (err) {
     const errorDetails = {
       message: err instanceof Error ? err.message : String(err),
