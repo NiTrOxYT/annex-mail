@@ -166,10 +166,22 @@ export function GlobalComposer({
       });
 
       if (!res.ok) {
+        // API shape: { success: false, error: { code: string, message: string } }
+        // or fallback plain { message: string } or { error: string }
         const errData = (await res.json().catch(() => ({}))) as {
-          error?: string;
+          error?: { code?: string; message?: string } | string;
+          message?: string;
         };
-        throw new Error(errData.error || `HTTP ${res.status}`);
+        console.error("[Composer] Send failed — full response body:", errData);
+
+        const extracted =
+          (typeof errData.error === "object"
+            ? errData.error?.message
+            : errData.error) ??
+          errData.message ??
+          `HTTP ${res.status}`;
+
+        throw new Error(extracted);
       }
 
       if (draftId) {
