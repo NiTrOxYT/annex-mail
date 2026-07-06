@@ -8,6 +8,7 @@ import { gmailClient } from "@/lib/providers/gmail/gmail.client";
 import { EmailAccount } from "@prisma/client";
 import { logger } from "@/lib/logger/logger";
 import { eventBus } from "@/lib/events/event-bus";
+import { QueueProvider } from "@/lib/queue/queue.interface";
 
 export class SyncService {
   async initialSync(account: EmailAccount): Promise<void> {
@@ -94,7 +95,33 @@ export class SyncService {
           });
         });
 
-      await watchService.setupWatch(account);
+      try {
+        await watchService.setupWatch(account);
+      } catch (watchErr) {
+        logger.error(
+          `Gmail watch setup failed during initialSync for ${account.email}, scheduling watch-renew retry job.`,
+          "SyncService",
+          { error: String(watchErr) },
+        );
+        try {
+          const queue = container.resolve<QueueProvider>("QueueProvider");
+          await queue.enqueue(
+            "watch-renew",
+            { emailAccountId: account.id },
+            { maxAttempts: 5 },
+          );
+          logger.info(
+            `Scheduled "watch-renew" retry job for ${account.email}`,
+            "SyncService",
+          );
+        } catch (enqueueErr) {
+          logger.error(
+            `Failed to enqueue "watch-renew" retry job`,
+            "SyncService",
+            { error: String(enqueueErr) },
+          );
+        }
+      }
 
       await eventBus.publish({
         name: "SYNC_COMPLETED",
