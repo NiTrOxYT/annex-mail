@@ -211,6 +211,19 @@ export function WorkspaceShell() {
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [isListLoading, setIsListLoading] = useState(true);
 
+  // Detect mobile viewport — drives Dialog vs inline composer split
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 767px)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
   // Collapsible composer state
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerMounted, setComposerMounted] = useState(false);
@@ -1215,9 +1228,9 @@ export function WorkspaceShell() {
                 </button>
               )}
 
-              {/* Desktop: Inline expanded composer */}
+              {/* Desktop: Inline expanded composer — never shows on mobile (Dialog handles mobile) */}
               <div
-                className={`overflow-hidden transition-all duration-250 ease-out md:block ${composerOpen ? "max-h-[540px] opacity-100" : "hidden max-h-0 opacity-0"}`}
+                className={`hidden overflow-hidden transition-[max-height,opacity] duration-250 ease-out md:block ${composerOpen ? "max-h-[540px] opacity-100" : "max-h-0 opacity-0"}`}
               >
                 {composerMounted && (
                   <div className="overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-900/10">
@@ -1268,46 +1281,48 @@ export function WorkspaceShell() {
               </div>
             </div>
 
-            {/* Mobile: Full-screen composer dialog */}
-            <Dialog
-              open={composerOpen}
-              onOpenChange={(open) => {
-                if (!open) handleCloseComposer();
-              }}
-            >
-              <DialogContent
-                showCloseButton={false}
-                className="fixed inset-0 z-50 flex h-[100dvh] w-full max-w-full translate-x-0 translate-y-0 flex-col rounded-none border-0 bg-zinc-950 p-0 md:hidden"
+            {/* Mobile: Full-screen composer dialog — only mounts on mobile to prevent backdrop on desktop */}
+            {isMobile && (
+              <Dialog
+                open={composerOpen}
+                onOpenChange={(open) => {
+                  if (!open) handleCloseComposer();
+                }}
               >
-                <DialogTitle className="sr-only">Reply Composer</DialogTitle>
-                {/* Mobile composer header */}
-                <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
-                  <button
-                    onClick={handleCloseComposer}
-                    className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                    <span className="text-sm">Back</span>
-                  </button>
-                  <button
-                    disabled={isLoading || !replyBody.trim()}
-                    onClick={handleSendReply}
-                    className="flex min-h-[36px] items-center gap-2 rounded-lg bg-zinc-100 px-4 py-1.5 text-xs font-semibold text-zinc-950 disabled:opacity-40"
-                  >
-                    {isLoading ? "Sending..." : "Send"}
-                  </button>
-                </div>
-                {/* Mobile editor */}
-                <div className="flex-1 overflow-hidden">
-                  {composerMounted && (
-                    <RichEditor
-                      content={replyBody}
-                      onChange={handleReplyBodyChange}
-                    />
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
+                <DialogContent
+                  showCloseButton={false}
+                  className="fixed inset-0 z-50 flex h-[100dvh] w-full max-w-full translate-x-0 translate-y-0 flex-col rounded-none border-0 bg-zinc-950 p-0"
+                >
+                  <DialogTitle className="sr-only">Reply Composer</DialogTitle>
+                  {/* Mobile composer header */}
+                  <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+                    <button
+                      onClick={handleCloseComposer}
+                      className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200"
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                      <span className="text-sm">Back</span>
+                    </button>
+                    <button
+                      disabled={isLoading || !replyBody.trim()}
+                      onClick={handleSendReply}
+                      className="flex min-h-[36px] items-center gap-2 rounded-lg bg-zinc-100 px-4 py-1.5 text-xs font-semibold text-zinc-950 disabled:opacity-40"
+                    >
+                      {isLoading ? "Sending..." : "Send"}
+                    </button>
+                  </div>
+                  {/* Mobile editor */}
+                  <div className="flex-1 overflow-hidden">
+                    {composerMounted && (
+                      <RichEditor
+                        content={replyBody}
+                        onChange={handleReplyBodyChange}
+                      />
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
 
             {/* Discard draft confirmation */}
             <Dialog open={showDiscardAlert} onOpenChange={setShowDiscardAlert}>
