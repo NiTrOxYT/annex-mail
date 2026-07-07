@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -25,10 +26,58 @@ export function RichEditor({ content, onChange }: RichEditorProps) {
   const editor = useEditor({
     extensions: [StarterKit, Link.configure({ openOnClick: false }), Image],
     content,
+    editorProps: {
+      attributes: {
+        "aria-label": "Email message body",
+        role: "textbox",
+      },
+      handlePaste(view, event) {
+        const items = Array.from(event.clipboardData?.items || []);
+        const imageItem = items.find(
+          (item) => item.type.indexOf("image") === 0,
+        );
+        if (imageItem) {
+          const file = imageItem.getAsFile();
+          if (file) {
+            event.preventDefault();
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const src = e.target?.result as string;
+              if (src) {
+                view.dispatch(
+                  view.state.tr.replaceSelectionWith(
+                    view.state.schema.nodes.image.create({ src }),
+                  ),
+                );
+              }
+            };
+            reader.readAsDataURL(file);
+
+            // Also upload to backend in background
+            const formData = new FormData();
+            formData.append("file", file);
+            fetch("/api/attachments/upload", {
+              method: "POST",
+              body: formData,
+            }).catch((err) =>
+              console.error("Pasted image background upload failed", err),
+            );
+            return true;
+          }
+        }
+        return false;
+      },
+    },
     onUpdate: ({ editor: activeEditor }) => {
       onChange(activeEditor.getHTML());
     },
   });
+
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
 
   if (!editor) return null;
 

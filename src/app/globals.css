@@ -134,3 +134,36 @@
     @apply font-sans;
   }
 }
+
+/* Email prose styling for quoted blocks */
+.prose blockquote,
+.prose .gmail_quote,
+.prose blockquote blockquote {
+  border-left: 2px solid #3f3f46;
+  padding-left: 1rem;
+  margin-left: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: #71717a;
+}
+
+/* Limit size of deeply nested blockquotes / quoted chains on mobile viewports */
+@media (max-width: 640px) {
+  .prose blockquote blockquote blockquote {
+    display: none;
+  }
+}
+
+/* Ensure inline message content images scale nicely and do not overflow */
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #27272a;
+  transition: opacity 0.15s ease-in-out;
+}
+.prose img:hover {
+  opacity: 0.9;
+}

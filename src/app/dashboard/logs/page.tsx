@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { History } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { db } from "@/lib/db/db";
 import { auth } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
@@ -117,9 +118,11 @@ export default async function LogsPage() {
         </CardHeader>
         <CardContent>
           {sortedEvents.length === 0 ? (
-            <div className="py-12 text-center text-sm text-zinc-500">
-              No historical log events found in the database.
-            </div>
+            <EmptyState
+              icon={History}
+              title="No Historical Audit Logs"
+              description="System log updates, role adjustments, scheduled sync loops, and mailbox events will compile here."
+            />
           ) : (
             <div className="divide-zinc-850 divide-y">
               {sortedEvents.map((evt) => (
@@ -133,11 +136,11 @@ export default async function LogsPage() {
                     >
                       {evt.action}
                     </span>
-                    <div className="space-y-1">
-                      <p className="text-xs leading-none font-semibold text-zinc-300">
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-xs leading-normal font-semibold break-words text-zinc-300">
                         {evt.message}
                       </p>
-                      <p className="font-mono text-[10px] text-zinc-500">
+                      <p className="font-mono text-[10px] break-all text-zinc-500">
                         Actor: {evt.actor}
                       </p>
                     </div>

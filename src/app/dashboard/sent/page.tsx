@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Send, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { db } from "@/lib/db/db";
 import { auth } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
@@ -53,9 +54,11 @@ export default async function SentPage() {
         </CardHeader>
         <CardContent>
           {sentMessages.length === 0 ? (
-            <div className="py-12 text-center text-sm text-zinc-500">
-              No outgoing messages found in the database.
-            </div>
+            <EmptyState
+              icon={Send}
+              title="No Sent Messages Logged"
+              description="No outgoing communications have been sent from this organization database yet."
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-zinc-300">

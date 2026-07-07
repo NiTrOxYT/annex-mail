@@ -16,7 +16,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Layout, Plus, Trash2, Edit, X, RefreshCw } from "lucide-react";
+import { Layout, Plus, Trash2, Edit, X } from "lucide-react";
+import { CardSkeleton } from "@/components/ui/skeleton-loader";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Template {
   id: string;
@@ -202,13 +204,21 @@ export default function TemplatesPage() {
 
       {/* Loading state */}
       {isLoading ? (
-        <div className="flex items-center justify-center p-12">
-          <RefreshCw className="h-6 w-6 animate-spin text-zinc-500" />
+        <div className="animate-in fade-in grid gap-4 duration-200 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <CardSkeleton key={i} />
+          ))}
         </div>
       ) : templates.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-900/10 p-12 text-center text-sm text-zinc-500">
-          No templates found. Create one to get started!
-        </div>
+        <EmptyState
+          icon={Layout}
+          title="No Response Templates Found"
+          description="Your templates folder is empty. Save reusable message templates to insert during compose or replies."
+          action={{
+            label: "Create Template",
+            onClick: openCreateModal,
+          }}
+        />
       ) : (
         /* Template Grid */
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

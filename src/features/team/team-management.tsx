@@ -10,12 +10,13 @@ import {
   Trash2,
   Shield,
   AlertTriangle,
-  Loader2,
   Check,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ListSkeleton } from "@/components/ui/skeleton-loader";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Dialog,
   DialogContent,
@@ -331,123 +332,227 @@ export function TeamManagement({
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex h-32 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+            <div className="animate-in fade-in p-2 duration-200">
+              <ListSkeleton />
             </div>
           ) : members.length === 0 ? (
-            <div className="py-12 text-center text-xs text-zinc-500">
-              No matching team members found in the organization database.
-            </div>
+            <EmptyState
+              icon={Users}
+              title="No Team Members Found"
+              description="No organization roster members matched your current filter search terms."
+            />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-zinc-300">
-                <thead>
-                  <tr className="border-b border-zinc-800/80 font-mono text-[10px] tracking-wider text-zinc-500 uppercase">
-                    <th className="pb-3 pl-2">User</th>
-                    <th className="pb-3">Email Address</th>
-                    <th className="pb-3">Role</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3">Created</th>
-                    <th className="pr-2 pb-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800/40">
-                  {members.map((member) => (
-                    <tr key={member.id} className="group hover:bg-zinc-900/10">
-                      <td className="py-3.5 pl-2 font-medium text-zinc-200">
-                        <div className="flex items-center gap-2.5">
-                          {member.avatar ? (
-                            <img
-                              src={member.avatar}
-                              alt={member.name}
-                              className="h-7 w-7 rounded-full border border-zinc-800 object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 font-mono text-[10px] text-zinc-500">
-                              {member.name?.[0]?.toUpperCase() || "U"}
-                            </div>
-                          )}
-                          <div>
-                            <span className="block">
-                              {member.name || "Anonymous"}
-                            </span>
-                            {member.mustChangePassword && (
-                              <span className="mt-0.5 inline-block rounded border border-amber-500/20 bg-amber-500/10 px-1 py-[1px] font-mono text-[8px] font-medium text-amber-500">
-                                Temp Pass
-                              </span>
+            <div>
+              {/* Desktop View */}
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full text-left text-xs text-zinc-300">
+                  <thead>
+                    <tr className="border-b border-zinc-800/80 font-mono text-[10px] tracking-wider text-zinc-500 uppercase">
+                      <th className="pb-3 pl-2">User</th>
+                      <th className="pb-3">Email Address</th>
+                      <th className="pb-3">Role</th>
+                      <th className="pb-3">Status</th>
+                      <th className="pb-3">Created</th>
+                      <th className="pr-2 pb-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/40">
+                    {members.map((member) => (
+                      <tr
+                        key={member.id}
+                        className="group hover:bg-zinc-900/10"
+                      >
+                        <td className="py-3.5 pl-2 font-medium text-zinc-200">
+                          <div className="flex items-center gap-2.5">
+                            {member.avatar ? (
+                              <img
+                                src={member.avatar}
+                                alt={member.name}
+                                className="h-7 w-7 rounded-full border border-zinc-800 object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 font-mono text-[10px] text-zinc-500">
+                                {member.name?.[0]?.toUpperCase() || "U"}
+                              </div>
                             )}
+                            <div>
+                              <span className="block">
+                                {member.name || "Anonymous"}
+                              </span>
+                              {member.mustChangePassword && (
+                                <span className="mt-0.5 inline-block rounded border border-amber-500/20 bg-amber-500/10 px-1 py-[1px] font-mono text-[8px] font-medium text-amber-500">
+                                  Temp Pass
+                                </span>
+                              )}
+                            </div>
                           </div>
+                        </td>
+                        <td className="py-3.5 font-mono text-zinc-400">
+                          {member.email}
+                        </td>
+                        <td className="py-3.5">
+                          <span className="inline-flex items-center gap-1 font-medium text-zinc-300">
+                            <Shield className="h-3.5 w-3.5 text-zinc-500" />
+                            {member.role === "OWNER"
+                              ? "Owner"
+                              : member.role === "ADMIN"
+                                ? "Admin"
+                                : "Member"}
+                          </span>
+                        </td>
+                        <td className="py-3.5">
+                          {member.status === "ACTIVE" ? (
+                            <span className="text-emerald-450 inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] font-semibold">
+                              <span className="h-1 w-1 rounded-full bg-emerald-500" />
+                              ACTIVE
+                            </span>
+                          ) : (
+                            <span className="text-red-450 inline-flex items-center gap-1 rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 font-mono text-[9px] font-semibold">
+                              <span className="h-1 w-1 rounded-full bg-red-500" />
+                              DISABLED
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 font-mono text-zinc-500">
+                          {new Date(member.createdAt).toLocaleDateString([], {
+                            month: "short",
+                            day: "2-digit",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="py-3.5 pr-2 text-right">
+                          <div className="flex items-center justify-end gap-1 opacity-80 transition-opacity group-hover:opacity-100">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEdit(member)}
+                              className="h-8 w-8 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+                              title="Edit Profile & Role"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openReset(member)}
+                              className="h-8 w-8 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+                              title="Set Temporary Password"
+                            >
+                              <KeyRound className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDelete(member)}
+                              disabled={member.userId === currentUserId}
+                              className="h-8 w-8 text-zinc-500 hover:bg-red-950/40 hover:text-red-400 disabled:opacity-30"
+                              title="Delete User"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="block space-y-3 md:hidden">
+                {members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/20 p-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        {member.avatar ? (
+                          <img
+                            src={member.avatar}
+                            alt={member.name}
+                            className="h-8 w-8 rounded-full border border-zinc-800 object-cover"
+                          />
+                        ) : (
+                          <div className="bg-zinc-905 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 font-mono text-[10px] text-zinc-400">
+                            {member.name?.[0]?.toUpperCase() || "U"}
+                          </div>
+                        )}
+                        <div>
+                          <span className="block text-xs font-semibold text-zinc-200">
+                            {member.name || "Anonymous"}
+                          </span>
+                          {member.mustChangePassword && (
+                            <span className="mt-0.5 inline-block rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[8px] font-medium text-amber-500">
+                              Temp Pass
+                            </span>
+                          )}
                         </div>
-                      </td>
-                      <td className="py-3.5 font-mono text-zinc-400">
+                      </div>
+                      <span className="inline-flex items-center gap-1 rounded border border-zinc-800 bg-zinc-900/50 px-2 py-0.5 text-[10px] font-medium text-zinc-400">
+                        <Shield className="h-3 w-3 text-zinc-500" />
+                        {member.role === "OWNER"
+                          ? "Owner"
+                          : member.role === "ADMIN"
+                            ? "Admin"
+                            : "Member"}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs">
+                      <p className="truncate font-mono text-[10px] text-zinc-400">
                         {member.email}
-                      </td>
-                      <td className="py-3.5">
-                        <span className="inline-flex items-center gap-1 font-medium text-zinc-300">
-                          <Shield className="h-3.5 w-3.5 text-zinc-500" />
-                          {member.role === "OWNER"
-                            ? "Owner"
-                            : member.role === "ADMIN"
-                              ? "Admin"
-                              : "Member"}
+                      </p>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-[9px] text-zinc-500">
+                          Joined:{" "}
+                          {new Date(member.createdAt).toLocaleDateString()}
                         </span>
-                      </td>
-                      <td className="py-3.5">
                         {member.status === "ACTIVE" ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-emerald-400">
-                            <span className="h-1 w-1 rounded-full bg-emerald-500" />
+                          <span className="text-emerald-450 inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[8px] font-semibold">
                             ACTIVE
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-red-400">
-                            <span className="h-1 w-1 rounded-full bg-red-500" />
+                          <span className="text-red-450 inline-flex items-center gap-1 rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 font-mono text-[8px] font-semibold">
                             DISABLED
                           </span>
                         )}
-                      </td>
-                      <td className="py-3.5 font-mono text-zinc-500">
-                        {new Date(member.createdAt).toLocaleDateString([], {
-                          month: "short",
-                          day: "2-digit",
-                          year: "numeric",
-                        })}
-                      </td>
-                      <td className="py-3.5 pr-2 text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-80 transition-opacity group-hover:opacity-100">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEdit(member)}
-                            className="h-8 w-8 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
-                            title="Edit Profile & Role"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openReset(member)}
-                            className="h-8 w-8 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
-                            title="Set Temporary Password"
-                          >
-                            <KeyRound className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openDelete(member)}
-                            disabled={member.userId === currentUserId}
-                            className="h-8 w-8 text-zinc-500 hover:bg-red-950/40 hover:text-red-400 disabled:opacity-30"
-                            title="Delete User"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 border-t border-zinc-800/40 pt-2.5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(member)}
+                        className="h-8 gap-1.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openReset(member)}
+                        className="h-8 gap-1.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                      >
+                        <KeyRound className="h-3 w-3" />
+                        Reset
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openDelete(member)}
+                        disabled={member.userId === currentUserId}
+                        className="h-8 gap-1.5 text-xs text-red-400 hover:bg-red-950/20 disabled:opacity-30"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

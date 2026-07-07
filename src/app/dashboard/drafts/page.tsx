@@ -16,7 +16,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FileText, Plus, Trash2, Edit, X, RefreshCw, Send } from "lucide-react";
+import { FileText, Plus, Trash2, Edit, X, Send } from "lucide-react";
+import { CardSkeleton } from "@/components/ui/skeleton-loader";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Draft {
   id: string;
@@ -227,13 +229,21 @@ export default function DraftsPage() {
 
       {/* Loading state */}
       {isLoading ? (
-        <div className="flex items-center justify-center p-12">
-          <RefreshCw className="h-6 w-6 animate-spin text-zinc-500" />
+        <div className="animate-in fade-in grid gap-4 duration-200 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <CardSkeleton key={i} />
+          ))}
         </div>
       ) : drafts.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-900/10 p-12 text-center text-sm text-zinc-500">
-          No drafts found. Compose one to get started!
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No Outbound Drafts Found"
+          description="Your drafts folder is empty. Create a new message draft or click compose to draft a response."
+          action={{
+            label: "Create Draft",
+            onClick: openCreateModal,
+          }}
+        />
       ) : (
         /* Drafts Grid */
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

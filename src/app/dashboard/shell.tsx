@@ -45,6 +45,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   const router = useRouter();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // Force password reset state
   const [forceChangeOpen, setForceChangeOpen] = useState(
@@ -272,10 +273,172 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
         </Dialog>
 
         {/* Content Area */}
-        <main className="w-full max-w-full flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="w-full max-w-full flex-1 overflow-y-auto p-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed right-0 bottom-0 left-0 z-40 flex items-center justify-around border-t border-zinc-800 bg-zinc-950 px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-lg select-none md:hidden">
+        <Link
+          href="/dashboard/inbox"
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-all ${
+            pathname === "/dashboard/inbox"
+              ? "text-zinc-100"
+              : "text-zinc-500 hover:text-zinc-400"
+          }`}
+        >
+          <Mail className="h-5 w-5" />
+          <span>Inbox</span>
+        </Link>
+        <Link
+          href="/dashboard/sent"
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-all ${
+            pathname === "/dashboard/sent"
+              ? "text-zinc-100"
+              : "text-zinc-500 hover:text-zinc-400"
+          }`}
+        >
+          <Send className="h-5 w-5" />
+          <span>Sent</span>
+        </Link>
+        <Link
+          href="/dashboard/drafts"
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-all ${
+            pathname === "/dashboard/drafts"
+              ? "text-zinc-100"
+              : "text-zinc-500 hover:text-zinc-400"
+          }`}
+        >
+          <FileText className="h-5 w-5" />
+          <span>Drafts</span>
+        </Link>
+        <Link
+          href="/dashboard/templates"
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-all ${
+            pathname === "/dashboard/templates"
+              ? "text-zinc-100"
+              : "text-zinc-500 hover:text-zinc-400"
+          }`}
+        >
+          <Layout className="h-5 w-5" />
+          <span>Templates</span>
+        </Link>
+        <button
+          onClick={() => setMoreOpen(true)}
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-medium transition-all ${
+            moreOpen ||
+            [
+              "/dashboard",
+              "/dashboard/team",
+              "/dashboard/logs",
+              "/dashboard/settings",
+              "/dashboard/diagnostics",
+            ].includes(pathname)
+              ? "text-zinc-100"
+              : "text-zinc-500 hover:text-zinc-400"
+          }`}
+        >
+          <Menu className="h-5 w-5" />
+          <span>More</span>
+        </button>
+      </nav>
+
+      {/* Mobile "More" Bottom Sheet Dialog */}
+      <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
+        <DialogContent className="animate-in slide-in-from-bottom fixed top-auto right-0 bottom-0 left-0 z-50 max-w-none translate-y-0 rounded-t-xl border-t border-zinc-800 bg-zinc-950 p-6 shadow-2xl duration-300">
+          <DialogTitle className="sr-only">More Options</DialogTitle>
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <span className="font-mono text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+              More Actions
+            </span>
+            <Button
+              onClick={() => setMoreOpen(false)}
+              variant="ghost"
+              size="icon"
+              className="cursor-pointer text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 pb-[env(safe-area-inset-bottom)]">
+            <Link
+              href="/dashboard"
+              onClick={() => setMoreOpen(false)}
+              className={`flex items-center gap-3 rounded-lg border border-zinc-800/80 bg-zinc-900/10 px-3 py-2.5 text-xs font-semibold text-zinc-200 transition-all active:scale-[0.98] ${
+                pathname === "/dashboard" ? "border-zinc-700 bg-zinc-900" : ""
+              }`}
+            >
+              <LayoutDashboard className="h-4 w-4 text-zinc-500" />
+              Dashboard
+            </Link>
+            {!isMember && (
+              <>
+                <Link
+                  href="/dashboard/team"
+                  onClick={() => setMoreOpen(false)}
+                  className={`flex items-center gap-3 rounded-lg border border-zinc-800/80 bg-zinc-900/10 px-3 py-2.5 text-xs font-semibold text-zinc-200 transition-all active:scale-[0.98] ${
+                    pathname === "/dashboard/team"
+                      ? "border-zinc-700 bg-zinc-900"
+                      : ""
+                  }`}
+                >
+                  <Users className="h-4 w-4 text-zinc-500" />
+                  Team
+                </Link>
+                <Link
+                  href="/dashboard/logs"
+                  onClick={() => setMoreOpen(false)}
+                  className={`flex items-center gap-3 rounded-lg border border-zinc-800/80 bg-zinc-900/10 px-3 py-2.5 text-xs font-semibold text-zinc-200 transition-all active:scale-[0.98] ${
+                    pathname === "/dashboard/logs"
+                      ? "border-zinc-700 bg-zinc-900"
+                      : ""
+                  }`}
+                >
+                  <History className="h-4 w-4 text-zinc-500" />
+                  Logs
+                </Link>
+                <Link
+                  href="/dashboard/settings"
+                  onClick={() => setMoreOpen(false)}
+                  className={`flex items-center gap-3 rounded-lg border border-zinc-800/80 bg-zinc-900/10 px-3 py-2.5 text-xs font-semibold text-zinc-200 transition-all active:scale-[0.98] ${
+                    pathname === "/dashboard/settings"
+                      ? "border-zinc-700 bg-zinc-900"
+                      : ""
+                  }`}
+                >
+                  <Settings className="h-4 w-4 text-zinc-500" />
+                  Settings
+                </Link>
+                {user.role === "OWNER" && (
+                  <Link
+                    href="/dashboard/diagnostics"
+                    onClick={() => setMoreOpen(false)}
+                    className={`flex items-center gap-3 rounded-lg border border-zinc-800/80 bg-zinc-900/10 px-3 py-2.5 text-xs font-semibold text-zinc-200 transition-all active:scale-[0.98] ${
+                      pathname === "/dashboard/diagnostics"
+                        ? "border-zinc-700 bg-zinc-900"
+                        : ""
+                    }`}
+                  >
+                    <Activity className="h-4 w-4 text-zinc-500" />
+                    Diagnostics
+                  </Link>
+                )}
+              </>
+            )}
+            <button
+              onClick={() => {
+                setMoreOpen(false);
+                handleLogout();
+              }}
+              className="flex items-center gap-3 rounded-lg border border-red-950 bg-red-950/20 px-3 py-2.5 text-left text-xs font-semibold text-red-400 transition-all active:scale-[0.98]"
+            >
+              <LogOut className="h-4 w-4 text-red-500" />
+              Log out
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Global Floating Composer */}
       {composerOpen && (

@@ -416,7 +416,7 @@ export default async function DashboardPage() {
               {sortedLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="flex items-start justify-between py-3.5 first:pt-0 last:pb-0"
+                  className="flex flex-col gap-2 py-3.5 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between"
                 >
                   <div className="flex items-start gap-3">
                     <span
@@ -424,16 +424,16 @@ export default async function DashboardPage() {
                     >
                       {log.action}
                     </span>
-                    <div className="space-y-0.5">
-                      <p className="text-xs font-medium text-zinc-300">
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="text-xs leading-relaxed font-medium break-words text-zinc-300">
                         {log.message}
                       </p>
-                      <p className="font-mono text-[10px] text-zinc-500">
+                      <p className="truncate font-mono text-[10px] text-zinc-500">
                         Sender/Actor: {log.user}
                       </p>
                     </div>
                   </div>
-                  <span className="ml-4 shrink-0 font-mono text-[10px] text-zinc-500">
+                  <span className="ml-0 shrink-0 self-end font-mono text-[10px] text-zinc-500 sm:ml-4 sm:self-start">
                     {new Date(log.time).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",

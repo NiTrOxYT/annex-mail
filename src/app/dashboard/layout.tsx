@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "./shell";
+import { WorkspaceProvider } from "@/features/inbox/workspace-context";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -22,5 +23,9 @@ export default async function DashboardLayout({
     mustChangePassword: !!session.user.mustChangePassword,
   };
 
-  return <DashboardShell user={user}>{children}</DashboardShell>;
+  return (
+    <WorkspaceProvider>
+      <DashboardShell user={user}>{children}</DashboardShell>
+    </WorkspaceProvider>
+  );
 }

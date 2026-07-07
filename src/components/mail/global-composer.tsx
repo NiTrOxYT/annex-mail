@@ -70,6 +70,57 @@ export function GlobalComposer({
   const dragStart = useRef({ mx: 0, my: 0, px: 0, py: 0 });
   const composerRef = useRef<HTMLDivElement>(null);
 
+  // Device layout detection
+  const [device, setDevice] = useState<"mobile" | "tablet" | "desktop">(
+    "desktop",
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      const w = window.innerWidth;
+      if (w < 640) {
+        setDevice("mobile");
+      } else if (w < 1024) {
+        setDevice("tablet");
+      } else {
+        setDevice("desktop");
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Touch handlers for swipe to dismiss on mobile
+  const touchStartY = useRef(0);
+  const touchCurrentY = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (device !== "mobile") return;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (device !== "mobile") return;
+    touchCurrentY.current = e.touches[0].clientY;
+    const diff = touchCurrentY.current - touchStartY.current;
+    if (diff > 0 && composerRef.current) {
+      composerRef.current.style.transform = `translateY(${diff}px)`;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (device !== "mobile") return;
+    const diff = touchCurrentY.current - touchStartY.current;
+    if (diff > 120) {
+      handleDiscard();
+    } else if (composerRef.current) {
+      composerRef.current.style.transform = "";
+    }
+    touchStartY.current = 0;
+    touchCurrentY.current = 0;
+  };
+
   // Auto-save every 5s
   const autoSaveTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -313,26 +364,37 @@ export function GlobalComposer({
     onClose();
   }, [draftId, onClose]);
 
-  const sizeClass = isFullscreen
-    ? "fixed inset-0 z-50 w-full h-full rounded-none"
-    : isMinimized
-      ? "fixed bottom-4 right-4 z-50 w-80 shadow-2xl"
-      : "fixed bottom-4 right-4 z-50 w-[640px] max-w-[96vw] shadow-2xl";
+  const sizeClass = isMinimized
+    ? "fixed bottom-4 right-4 z-50 w-80 shadow-2xl"
+    : isFullscreen || device === "mobile"
+      ? "fixed inset-0 z-50 w-full h-full rounded-none"
+      : device === "tablet"
+        ? "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[580px] h-[550px] max-w-[95vw] max-h-[90vh] rounded-xl shadow-2xl border border-zinc-800"
+        : "fixed bottom-4 right-4 z-50 w-[640px] max-w-[96vw] shadow-2xl";
+
+  const showBackdrop =
+    isFullscreen ||
+    device === "tablet" ||
+    (device === "mobile" && !isMinimized);
 
   return (
     <>
-      {/* Backdrop for fullscreen */}
-      {isFullscreen && (
+      {/* Backdrop for fullscreen / centered modes */}
+      {showBackdrop && (
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-          onClick={() => setIsFullscreen(false)}
+          onClick={() => {
+            if (device === "tablet" || isFullscreen) {
+              setIsFullscreen(false);
+            }
+          }}
         />
       )}
 
       <div
         ref={composerRef}
         style={
-          isFullscreen
+          isFullscreen || device === "mobile" || device === "tablet"
             ? {}
             : {
                 bottom: 16,
@@ -340,12 +402,15 @@ export function GlobalComposer({
                 transform: `translate(${pos.x}px, ${pos.y}px)`,
               }
         }
-        className={`${sizeClass} flex flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 transition-none`}
+        className={`${sizeClass} ${(isFullscreen || device === "mobile") && !isMinimized ? "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]" : ""} animate-in fade-in slide-in-from-bottom-8 flex flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 transition-none duration-300 ease-out`}
       >
-        {/* Header — draggable */}
+        {/* Header — draggable/swipeable */}
         <div
           onMouseDown={onMouseDown}
-          className={`flex shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900/60 px-4 py-2.5 ${!isFullscreen ? "cursor-grab active:cursor-grabbing" : ""}`}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className={`flex shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900/60 px-4 py-2.5 ${!isFullscreen && device === "desktop" ? "cursor-grab active:cursor-grabbing" : ""}`}
         >
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />

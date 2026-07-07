@@ -228,8 +228,8 @@ export function SettingsView() {
 
               {/* Manual Sync Section */}
               <div className="mt-4 space-y-3 rounded-lg border border-zinc-800/60 bg-zinc-900/10 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 space-y-0.5 pr-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex-1 space-y-0.5 sm:pr-4">
                     <p className="font-semibold text-zinc-300">
                       Manual Mailbox Synchronization
                     </p>
@@ -241,7 +241,7 @@ export function SettingsView() {
                   <Button
                     onClick={handleSyncNow}
                     disabled={syncing || loading}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-zinc-100 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 transition-all hover:bg-zinc-200 disabled:opacity-50"
+                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-zinc-100 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 transition-all hover:bg-zinc-200 disabled:opacity-50 sm:w-auto"
                   >
                     {syncing ? (
                       <>
