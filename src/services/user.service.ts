@@ -53,11 +53,37 @@ export class UserService {
       return null;
     }
 
+    if (user.status === "DISABLED") {
+      logger.warn(
+        `Login failed: user account disabled for ${email}`,
+        "UserService",
+      );
+      return null;
+    }
+
+    const primaryMembership = user.memberships?.[0];
+    if (primaryMembership && primaryMembership.status === "DISABLED") {
+      logger.warn(
+        `Login failed: user membership disabled in primary org for ${email}`,
+        "UserService",
+      );
+      return null;
+    }
+
     const matches = await bcrypt.compare(plainTextPassword, user.passwordHash);
     if (!matches) {
       logger.warn(`Login failed: invalid password for ${email}`, "UserService");
       return null;
     }
+
+    // Update lastLoginAt
+    await this.userRepo
+      .update(user.id, {
+        lastLoginAt: new Date(),
+      })
+      .catch((err) =>
+        logger.error(`Failed to update lastLoginAt: ${err}`, "UserService"),
+      );
 
     return user;
   }

@@ -18,9 +18,12 @@ import {
   LogOut,
   User as UserIcon,
   PenSquare,
+  KeyRound,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { GlobalComposer } from "@/components/mail/global-composer";
 
@@ -28,6 +31,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  mustChangePassword: boolean;
 }
 
 interface DashboardShellProps {
@@ -41,15 +45,30 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
 
+  // Force password reset state
+  const [forceChangeOpen, setForceChangeOpen] = useState(
+    user.mustChangePassword,
+  );
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const isMember = user.role === "EMPLOYEE" || user.role === "MEMBER";
+
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Inbox", href: "/dashboard/inbox", icon: Mail },
     { name: "Sent", href: "/dashboard/sent", icon: Send },
     { name: "Drafts", href: "/dashboard/drafts", icon: FileText },
     { name: "Templates", href: "/dashboard/templates", icon: Layout },
-    { name: "Team", href: "/dashboard/team", icon: Users },
-    { name: "Logs", href: "/dashboard/logs", icon: History },
-    { name: "Settings", href: "/dashboard/settings", icon: Settings },
+    ...(!isMember
+      ? [
+          { name: "Team", href: "/dashboard/team", icon: Users },
+          { name: "Logs", href: "/dashboard/logs", icon: History },
+          { name: "Settings", href: "/dashboard/settings", icon: Settings },
+        ]
+      : []),
   ];
 
   const handleLogout = async () => {
@@ -62,9 +81,49 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   };
 
   const handleComposerSent = () => {
-    // Refresh current page data after successful send
     router.refresh();
   };
+
+  const handleForceChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match.");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword }),
+      });
+      const body = await res.json();
+      if (body.success) {
+        setForceChangeOpen(false);
+        router.refresh();
+      } else {
+        setPasswordError(body.error?.message || "Failed to update password.");
+      }
+    } catch {
+      setPasswordError("An error occurred during password update.");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const displayRole =
+    user.role === "EMPLOYEE"
+      ? "Member"
+      : user.role === "ADMIN"
+        ? "Admin"
+        : "Owner";
 
   const renderSidebar = () => (
     <div className="flex h-full flex-col border-r border-zinc-800/80 bg-zinc-950 p-4 font-sans text-zinc-300">
@@ -125,7 +184,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
               {user.name}
             </p>
             <p className="font-mono text-[10px] font-medium tracking-wider text-zinc-500 uppercase">
-              {user.role}
+              {displayRole}
             </p>
           </div>
         </div>
@@ -215,6 +274,71 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           onSent={handleComposerSent}
         />
       )}
+
+      {/* FORCE PASSWORD RESET OVERLAY */}
+      <Dialog open={forceChangeOpen} onOpenChange={() => {}}>
+        <DialogContent
+          className="max-w-sm border-zinc-800 bg-zinc-950 text-zinc-100"
+          showCloseButton={false}
+        >
+          <div className="flex flex-col items-center text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-amber-500/20 bg-amber-950/40 text-amber-500">
+              <KeyRound className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-sm font-semibold tracking-tight text-zinc-200">
+              Reset Your Password
+            </DialogTitle>
+            <p className="mt-1 text-xs text-zinc-400">
+              An administrator has forced a password update. Please choose a new
+              password to activate platform access.
+            </p>
+          </div>
+
+          <form onSubmit={handleForceChangePassword} className="mt-4 space-y-4">
+            <div className="space-y-1.5">
+              <label className="font-mono text-[9px] tracking-wider text-zinc-500 uppercase">
+                New Password
+              </label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                className="h-9 border-zinc-800 bg-zinc-900/40 text-xs text-zinc-200 focus-visible:ring-zinc-700"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="font-mono text-[9px] tracking-wider text-zinc-500 uppercase">
+                Confirm New Password
+              </label>
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="h-9 border-zinc-800 bg-zinc-900/40 text-xs text-zinc-200 focus-visible:ring-zinc-700"
+                required
+              />
+            </div>
+
+            {passwordError && (
+              <div className="flex items-center gap-2 rounded border border-red-500/20 bg-red-500/10 px-3 py-2 text-[10px] text-red-400">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                <span>{passwordError}</span>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={passwordLoading}
+              className="h-9 w-full bg-zinc-100 text-xs font-semibold text-zinc-950 transition-all hover:bg-zinc-200 active:scale-[0.98]"
+            >
+              {passwordLoading ? "Updating..." : "Activate Account"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

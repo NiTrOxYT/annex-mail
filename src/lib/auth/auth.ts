@@ -40,6 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               email: user.email,
               role: primaryMembership?.role || "EMPLOYEE",
               organizationId: primaryMembership?.organizationId || null,
+              mustChangePassword: !!user.mustChangePassword,
             };
           } catch (error) {
             logger.error(`Error during authorization: ${error}`, "Auth");

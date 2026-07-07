@@ -17,6 +17,14 @@ async function postHandler() {
       throw new AuthenticationError("User is not authenticated");
     }
 
+    if (session.user.role !== "OWNER") {
+      return ApiResponse.failure(
+        new AuthenticationError(
+          "Forbidden: only Owners can connect new mailboxes",
+        ),
+      );
+    }
+
     const clientId = googleConfig.clientId;
     const redirectUri = `${appConfig.url}/api/gmail/callback`;
     const scopes = [

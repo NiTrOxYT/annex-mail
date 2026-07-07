@@ -6,12 +6,14 @@ declare module "next-auth" {
       id: string;
       role: "OWNER" | "ADMIN" | "EMPLOYEE" | "READONLY";
       organizationId: string | null;
+      mustChangePassword: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
     role?: "OWNER" | "ADMIN" | "EMPLOYEE" | "READONLY";
     organizationId?: string | null;
+    mustChangePassword?: boolean;
   }
 }
 
@@ -20,5 +22,6 @@ declare module "next-auth/jwt" {
     id?: string;
     role?: "OWNER" | "ADMIN" | "EMPLOYEE" | "READONLY";
     organizationId?: string | null;
+    mustChangePassword?: boolean;
   }
 }

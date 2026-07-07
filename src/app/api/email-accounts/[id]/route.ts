@@ -17,6 +17,14 @@ export async function DELETE(req: Request, { params }: RouteParams) {
       throw new AuthenticationError("User is not authenticated");
     }
 
+    if (session.user.role !== "OWNER") {
+      return ApiResponse.failure(
+        new AuthenticationError(
+          "Forbidden: only Owners can disconnect mailboxes",
+        ),
+      );
+    }
+
     const resolvedParams = await params;
     const account = await db.emailAccount.findUnique({
       where: { id: resolvedParams.id },

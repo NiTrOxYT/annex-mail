@@ -3,6 +3,7 @@ import { History } from "lucide-react";
 import { db } from "@/lib/db/db";
 import { auth } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
+import { Forbidden } from "@/components/auth/forbidden";
 
 export const metadata = {
   title: "Audit Logs - Annex Mail",
@@ -12,6 +13,11 @@ export default async function LogsPage() {
   const session = await auth();
   if (!session || !session.user || !session.user.organizationId) {
     redirect("/login");
+  }
+
+  const role = session.user.role;
+  if (role !== "OWNER" && role !== "ADMIN") {
+    return <Forbidden />;
   }
 
   const orgId = session.user.organizationId;

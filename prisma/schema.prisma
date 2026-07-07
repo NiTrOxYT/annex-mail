@@ -33,18 +33,22 @@ enum DeliveryStatus {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  name         String?
-  email        String     @unique
-  passwordHash String?
-  avatar       String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  memberships  Member[]
-  sessions     Session[]
-  messages     Message[]
-  drafts       Draft[]
-  templates    Template[]
+  id                 String     @id @default(cuid())
+  name               String?
+  email              String     @unique
+  passwordHash       String?
+  avatar             String?
+  role               Role       @default(EMPLOYEE)
+  status             String     @default("ACTIVE")
+  mustChangePassword Boolean    @default(false)
+  lastLoginAt        DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  memberships        Member[]
+  sessions           Session[]
+  messages           Message[]
+  drafts             Draft[]
+  templates          Template[]
 
   @@map("users")
 }
@@ -67,6 +71,7 @@ model Organization {
 model Member {
   id             String       @id @default(cuid())
   role           Role         @default(EMPLOYEE)
+  status         String       @default("ACTIVE")
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   userId         String

@@ -21,6 +21,7 @@ export const authConfig = {
         token.id = user.id;
         token.role = user.role;
         token.organizationId = user.organizationId;
+        token.mustChangePassword = user.mustChangePassword;
       }
       return token;
     },
@@ -30,6 +31,7 @@ export const authConfig = {
         session.user.role = token.role as
           "OWNER" | "ADMIN" | "EMPLOYEE" | "READONLY";
         session.user.organizationId = token.organizationId as string | null;
+        session.user.mustChangePassword = !!token.mustChangePassword;
       }
       return session;
     },

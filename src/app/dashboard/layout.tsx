@@ -19,6 +19,7 @@ export default async function DashboardLayout({
     name: session.user.name || "User",
     email: session.user.email || "",
     role: session.user.role || "EMPLOYEE",
+    mustChangePassword: !!session.user.mustChangePassword,
   };
 
   return <DashboardShell user={user}>{children}</DashboardShell>;

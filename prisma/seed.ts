@@ -124,9 +124,17 @@ async function seedUser(orgId: string) {
     const isMember = existing.memberships.some((m) => m.organizationId === orgId);
     if (!isMember) {
       await db.member.create({
-        data: { userId: existing.id, organizationId: orgId, role: Role.OWNER },
+        data: { userId: existing.id, organizationId: orgId, role: Role.OWNER, status: "ACTIVE" },
       });
       console.log(`  ✓ Added existing user to organization as OWNER`);
+    }
+
+    // Ensure user role/status is set correctly
+    if (existing.role !== Role.OWNER || existing.status !== "ACTIVE") {
+      await db.user.update({
+        where: { id: existing.id },
+        data: { role: Role.OWNER, status: "ACTIVE" },
+      });
     }
 
     return existing;
@@ -145,8 +153,10 @@ async function seedUser(orgId: string) {
       email: SEED_USER_EMAIL,
       name: SEED_USER_NAME,
       passwordHash,
+      role: Role.OWNER,
+      status: "ACTIVE",
       memberships: {
-        create: [{ organizationId: orgId, role: Role.OWNER }],
+        create: [{ organizationId: orgId, role: Role.OWNER, status: "ACTIVE" }],
       },
     },
   });
