@@ -10,8 +10,17 @@ import { logger } from "@/lib/logger/logger";
 import { eventBus } from "@/lib/events/event-bus";
 import { QueueProvider } from "@/lib/queue/queue.interface";
 
+export interface SyncSummary {
+  messagesImported: number;
+  conversationsImported: number;
+  attachmentsImported: number;
+  durationMs: number;
+  errors: string[];
+}
+
 export class SyncService {
-  async initialSync(account: EmailAccount): Promise<void> {
+  async initialSync(account: EmailAccount): Promise<SyncSummary> {
+    const startTime = Date.now();
     const syncRepo = container.resolve<SyncStateRepository>(
       "SyncStateRepository",
     );
@@ -26,6 +35,14 @@ export class SyncService {
       payload: { emailAccountId: account.id },
     });
 
+    const summary: SyncSummary = {
+      messagesImported: 0,
+      conversationsImported: 0,
+      attachmentsImported: 0,
+      durationMs: 0,
+      errors: [],
+    };
+
     try {
       await labelService.syncLabels(account);
 
@@ -33,30 +50,45 @@ export class SyncService {
       const importer = provider.getImporter();
       const normalizer = provider.getNormalizer();
 
-      const res = await gmailClient.fetchWithAuth(
-        account,
-        "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20",
-      );
-
       let messages: { id: string; threadId: string }[] = [];
       let historyId = "1000";
+      let nextPageToken: string | undefined = undefined;
+      let pagesFetched = 0;
+      const maxPages = 5; // Sync up to 100 messages for initial/manual sync limits
 
-      if (res.ok) {
-        const data = (await res.json()) as {
-          simulated?: boolean;
-          messages?: { id: string; threadId: string }[];
-        };
-        if (data.simulated) {
-          messages = [
-            { id: "sim_msg1", threadId: "sim_thread1" },
-            { id: "sim_msg2", threadId: "sim_thread2" },
-          ];
+      do {
+        const tokenParam = nextPageToken ? `&pageToken=${nextPageToken}` : "";
+        const res = await gmailClient.fetchWithAuth(
+          account,
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20${tokenParam}`,
+        );
+
+        if (res.ok) {
+          const data = (await res.json()) as {
+            simulated?: boolean;
+            messages?: { id: string; threadId: string }[];
+            nextPageToken?: string;
+          };
+          if (data.simulated) {
+            messages = [
+              { id: "sim_msg1", threadId: "sim_thread1" },
+              { id: "sim_msg2", threadId: "sim_thread2" },
+            ];
+            break;
+          } else {
+            if (data.messages) {
+              messages.push(...data.messages);
+            }
+            nextPageToken = data.nextPageToken;
+          }
         } else {
-          messages = data.messages || [];
+          const text = await res.text();
+          throw new Error(
+            `Failed to fetch initial message list: ${res.status} - ${text}`,
+          );
         }
-      } else {
-        throw new Error(`Failed to fetch initial message list: ${res.status}`);
-      }
+        pagesFetched++;
+      } while (nextPageToken && pagesFetched < maxPages);
 
       for (const msg of messages) {
         try {
@@ -68,14 +100,24 @@ export class SyncService {
             historyId = raw.historyId;
           }
 
-          await importService.importMessage(
+          const importResult = await importService.importMessage(
             account.id,
             account.organizationId,
             normalized,
           );
+
+          if (importResult.status === "imported") {
+            summary.messagesImported++;
+            if (importResult.conversationCreated) {
+              summary.conversationsImported++;
+            }
+            summary.attachmentsImported += importResult.attachmentsCreated;
+          }
         } catch (fetchErr) {
+          const errMsg = String(fetchErr);
+          summary.errors.push(`Message ${msg.id}: ${errMsg}`);
           logger.error(`Failed to import message ${msg.id}`, "SyncService", {
-            error: String(fetchErr),
+            error: errMsg,
           });
         }
       }
@@ -123,11 +165,15 @@ export class SyncService {
         }
       }
 
+      summary.durationMs = Date.now() - startTime;
+
       await eventBus.publish({
         name: "SYNC_COMPLETED",
         timestamp: new Date(),
         payload: { emailAccountId: account.id, historyId },
       });
+
+      return summary;
     } catch (err) {
       await syncRepo.update(account.id, { status: "FAILED" }).catch(() => {});
 

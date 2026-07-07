@@ -5,6 +5,7 @@ import { EmailAccount } from "@prisma/client";
 import { logger } from "@/lib/logger/logger";
 import { eventBus } from "@/lib/events/event-bus";
 import { AuditService } from "@/lib/audit/audit.service";
+import { db } from "@/lib/db/db";
 
 export class WatchService {
   async setupWatch(account: EmailAccount): Promise<void> {
@@ -21,7 +22,8 @@ export class WatchService {
     );
 
     try {
-      const { resourceId, expiration } = await watcher.watch(account);
+      const { resourceId, expiration, historyId } =
+        await watcher.watch(account);
 
       await watchRepo
         .update(account.id, {
@@ -35,6 +37,23 @@ export class WatchService {
             resourceId,
           });
         });
+
+      if (historyId) {
+        await db.syncState
+          .update({
+            where: { emailAccountId: account.id },
+            data: { historyId },
+          })
+          .catch(async () => {
+            await db.syncState.create({
+              data: {
+                emailAccountId: account.id,
+                historyId,
+                status: "IDLE",
+              },
+            });
+          });
+      }
 
       await audit.logAudit({
         action: "WATCH_CREATED",

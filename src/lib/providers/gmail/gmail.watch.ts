@@ -8,7 +8,7 @@ export class GmailWatch implements MailWatcher {
 
   async watch(
     account: EmailAccount,
-  ): Promise<{ resourceId: string; expiration: Date }> {
+  ): Promise<{ resourceId: string; expiration: Date; historyId?: string }> {
     if (
       !this.topicName ||
       this.topicName.includes("your-project-id") ||
@@ -42,10 +42,12 @@ export class GmailWatch implements MailWatcher {
     const data = (await res.json()) as {
       resourceId: string;
       expiration: string;
+      historyId?: string;
     };
     return {
       resourceId: data.resourceId,
       expiration: new Date(parseInt(data.expiration, 10)),
+      historyId: data.historyId,
     };
   }
 

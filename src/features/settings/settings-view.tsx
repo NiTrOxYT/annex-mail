@@ -27,6 +27,14 @@ export function SettingsView() {
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [fetching, setFetching] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{
+    messagesImported: number;
+    conversationsImported: number;
+    attachmentsImported: number;
+    durationMs: number;
+    errors: string[];
+  } | null>(null);
 
   const fetchAccounts = async () => {
     try {
@@ -86,6 +94,7 @@ export function SettingsView() {
       });
       if (res.ok) {
         fetchAccounts();
+        setSyncResult(null);
       } else {
         alert("Failed to disconnect mailbox.");
       }
@@ -94,6 +103,33 @@ export function SettingsView() {
       alert("Error during disconnect.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncNow = async () => {
+    if (!gmailAccount) return;
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch(`/api/email-accounts/${gmailAccount.id}/sync`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const body = await res.json();
+        if (body.success && body.data?.summary) {
+          setSyncResult(body.data.summary);
+          fetchAccounts();
+        } else {
+          alert("Failed to sync: " + (body.error || "Unknown error"));
+        }
+      } else {
+        alert("Failed to sync: HTTP " + res.status);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error during sync.");
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -188,6 +224,79 @@ export function SettingsView() {
                     Disconnect
                   </Button>
                 </div>
+              </div>
+
+              {/* Manual Sync Section */}
+              <div className="mt-4 space-y-3 rounded-lg border border-zinc-800/60 bg-zinc-900/10 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 space-y-0.5 pr-4">
+                    <p className="font-semibold text-zinc-300">
+                      Manual Mailbox Synchronization
+                    </p>
+                    <p className="text-[10px] text-zinc-500">
+                      Run a manual import to fetch the latest messages, threads,
+                      and attachments directly from Google.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleSyncNow}
+                    disabled={syncing || loading}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-zinc-100 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 transition-all hover:bg-zinc-200 disabled:opacity-50"
+                  >
+                    {syncing ? (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Sync Now
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {syncResult && (
+                  <div className="space-y-2 rounded-lg border border-zinc-800/80 bg-zinc-950/30 p-3 font-mono text-[11px] text-zinc-400">
+                    <p className="font-sans font-semibold text-zinc-300">
+                      Synchronization Results:
+                    </p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      <p>Messages Imported:</p>
+                      <p className="font-bold text-zinc-200">
+                        {syncResult.messagesImported}
+                      </p>
+                      <p>Conversations Imported:</p>
+                      <p className="font-bold text-zinc-200">
+                        {syncResult.conversationsImported}
+                      </p>
+                      <p>Attachments Imported:</p>
+                      <p className="font-bold text-zinc-200">
+                        {syncResult.attachmentsImported}
+                      </p>
+                      <p>Duration:</p>
+                      <p className="font-bold text-zinc-200">
+                        {(syncResult.durationMs / 1000).toFixed(2)}s
+                      </p>
+                      {syncResult.errors.length > 0 && (
+                        <>
+                          <p className="text-red-400">Errors encountered:</p>
+                          <p className="font-bold text-red-400">
+                            {syncResult.errors.length}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    {syncResult.errors.length > 0 && (
+                      <div className="mt-2 max-h-24 space-y-1 overflow-y-auto rounded border border-red-900/10 bg-red-950/10 p-2 text-[10px] text-red-400">
+                        {syncResult.errors.map((err, idx) => (
+                          <p key={idx}>• {err}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (

@@ -5,6 +5,7 @@ import { importService } from "./import.service";
 import { EmailAccount } from "@prisma/client";
 import { logger } from "@/lib/logger/logger";
 import { eventBus } from "@/lib/events/event-bus";
+import { MailHistoryChange } from "@/lib/providers/provider.interface";
 
 export class HistoryService {
   async processHistorySync(
@@ -31,10 +32,34 @@ export class HistoryService {
     });
 
     try {
-      const { historyId, changes } = await historyProvider.listHistory(
-        account,
-        startHistoryId,
-      );
+      let historyId: string;
+      let changes: MailHistoryChange[] = [];
+      try {
+        const result = await historyProvider.listHistory(
+          account,
+          startHistoryId,
+        );
+        historyId = result.historyId;
+        changes = result.changes;
+      } catch (listErr) {
+        const errMsg = String(listErr);
+        if (
+          errMsg.includes("historyId") ||
+          errMsg.includes("expired") ||
+          errMsg.includes("invalid") ||
+          errMsg.includes("400") ||
+          errMsg.includes("404")
+        ) {
+          logger.warn(
+            `historyId expired or invalid (${errMsg}) for ${account.email}, triggering FULL mailbox resync`,
+            "HistoryService",
+          );
+          const { syncService } = await import("./sync.service");
+          await syncService.initialSync(account);
+          return;
+        }
+        throw listErr;
+      }
 
       for (const change of changes) {
         if (change.type === "added") {

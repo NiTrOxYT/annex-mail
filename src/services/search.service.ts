@@ -82,9 +82,20 @@ export class SearchService {
       orderBy: { lastMessageAt: "desc" },
       include: {
         messages: {
-          include: {
-            labels: { include: { label: true } },
+          select: {
+            id: true,
+            sender: true,
+            recipients: true,
+            cc: true,
+            bcc: true,
+            subject: true,
+            snippet: true,
+            isRead: true,
+            isStarred: true,
+            internalDate: true,
+            direction: true,
             attachments: true,
+            labels: { include: { label: true } },
           },
           orderBy: { createdAt: "asc" },
         },

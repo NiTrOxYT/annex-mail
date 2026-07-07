@@ -20,6 +20,7 @@ import {
   PenSquare,
   KeyRound,
   AlertTriangle,
+  Activity,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,15 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           { name: "Team", href: "/dashboard/team", icon: Users },
           { name: "Logs", href: "/dashboard/logs", icon: History },
           { name: "Settings", href: "/dashboard/settings", icon: Settings },
+          ...(user.role === "OWNER"
+            ? [
+                {
+                  name: "Diagnostics",
+                  href: "/dashboard/diagnostics",
+                  icon: Activity,
+                },
+              ]
+            : []),
         ]
       : []),
   ];

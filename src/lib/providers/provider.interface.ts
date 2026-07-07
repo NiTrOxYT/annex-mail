@@ -52,7 +52,7 @@ export interface MailImporter {
 export interface MailWatcher {
   watch(
     account: EmailAccount,
-  ): Promise<{ resourceId: string; expiration: Date }>;
+  ): Promise<{ resourceId: string; expiration: Date; historyId?: string }>;
   stop(account: EmailAccount): Promise<void>;
 }
 

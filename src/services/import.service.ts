@@ -12,7 +12,11 @@ export class ImportService {
     emailAccountId: string,
     orgId: string,
     msg: NormalizedMessage,
-  ): Promise<void> {
+  ): Promise<{
+    status: "imported" | "updated";
+    attachmentsCreated: number;
+    conversationCreated?: boolean;
+  }> {
     const labelRepo = container.resolve<LabelRepository>("LabelRepository");
 
     const checksumInput = `${msg.providerMessageId}:${
@@ -35,14 +39,11 @@ export class ImportService {
 
     if (existing) {
       await this.updateMessageFlags(existing.id, msg);
-      return;
+      return { status: "updated", attachmentsCreated: 0 };
     }
 
-    const conversationId = await this.resolveConversationId(
-      emailAccountId,
-      orgId,
-      msg,
-    );
+    const { id: conversationId, created: conversationCreated } =
+      await this.resolveConversationId(emailAccountId, orgId, msg);
 
     const direction = msg.sender.includes(msg.recipients[0] || "")
       ? MessageDirection.OUTBOUND
@@ -101,6 +102,7 @@ export class ImportService {
     }
 
     // Attachments tracking
+    let attachmentsCreated = 0;
     if (msg.attachments) {
       for (const att of msg.attachments) {
         await db.attachment.create({
@@ -113,6 +115,7 @@ export class ImportService {
             storagePath: `orgs/${orgId}/attachments/${att.providerAttachmentId}_${att.filename}`,
           },
         });
+        attachmentsCreated++;
       }
     }
 
@@ -121,6 +124,8 @@ export class ImportService {
       timestamp: new Date(),
       payload: { messageId: created.id, conversationId, organizationId: orgId },
     });
+
+    return { status: "imported", attachmentsCreated, conversationCreated };
   }
 
   private async updateMessageFlags(
@@ -148,7 +153,7 @@ export class ImportService {
     emailAccountId: string,
     orgId: string,
     msg: NormalizedMessage,
-  ): Promise<string> {
+  ): Promise<{ id: string; created: boolean }> {
     const conversationRepo = container.resolve<ConversationRepository>(
       "ConversationRepository",
     );
@@ -163,7 +168,7 @@ export class ImportService {
         select: { conversationId: true },
       });
       if (existingMsg) {
-        return existingMsg.conversationId;
+        return { id: existingMsg.conversationId, created: false };
       }
     }
 
@@ -187,7 +192,7 @@ export class ImportService {
         select: { conversationId: true },
       });
       if (relatedMsg) {
-        return relatedMsg.conversationId;
+        return { id: relatedMsg.conversationId, created: false };
       }
     }
 
@@ -202,7 +207,7 @@ export class ImportService {
     });
 
     if (cleanSubjectMsg) {
-      return cleanSubjectMsg.conversationId;
+      return { id: cleanSubjectMsg.conversationId, created: false };
     }
 
     // 4. Create new thread
@@ -213,7 +218,7 @@ export class ImportService {
       threadKey: msg.providerThreadId,
     });
 
-    return conversation.id;
+    return { id: conversation.id, created: true };
   }
 }
 export const importService = new ImportService();

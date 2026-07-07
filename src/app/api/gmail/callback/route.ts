@@ -223,21 +223,24 @@ async function getHandler(req: Request) {
       "GmailCallback",
     );
 
-    // 6. Spawn initial sync asynchronously in background
-    logger.info(
-      "[OAuth] Initiating initial sync background task",
-      "GmailCallback",
-    );
-    syncService.initialSync(account).catch((err) => {
+    // 6. Perform initial sync
+    logger.info("[OAuth] Initiating initial sync task", "GmailCallback");
+    try {
+      await syncService.initialSync(account);
+      logger.info(
+        `[OAuth] Initial sync succeeded for ${account.email}`,
+        "GmailCallback",
+      );
+    } catch (syncErr) {
       logger.error(
-        `[OAuth] Async background initial mailbox sync task failed for ${account.email}`,
+        `[OAuth] Initial sync failed for ${account.email}`,
         "GmailCallback",
         {
-          error: err instanceof Error ? err.message : String(err),
-          stack: err instanceof Error ? err.stack : undefined,
+          error: syncErr instanceof Error ? syncErr.message : String(syncErr),
+          stack: syncErr instanceof Error ? syncErr.stack : undefined,
         },
       );
-    });
+    }
 
     logger.info("[OAuth] Redirecting user to settings", "GmailCallback");
     return NextResponse.redirect(new URL("/dashboard/settings", req.url));

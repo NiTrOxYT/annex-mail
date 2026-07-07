@@ -2,8 +2,8 @@ import { db } from "@/lib/db/db";
 import { container, ensureInitialized } from "@/lib/di/container";
 import { QueueProvider } from "@/lib/queue/queue.interface";
 import { logger } from "@/lib/logger/logger";
-
 import { withRateLimit } from "@/lib/security/rate-limiter";
+import { historyService } from "@/services/history.service";
 
 async function postHandler(req: Request) {
   try {
@@ -51,6 +51,22 @@ async function postHandler(req: Request) {
       emailAccountId: account.id,
       startHistoryId: String(historyId),
     });
+
+    try {
+      await historyService.processHistorySync(account, String(historyId));
+      logger.info(
+        `Successfully processed webhook push sync inline for ${emailAddress}`,
+        "GmailWebhook",
+      );
+    } catch (syncErr) {
+      logger.error(
+        `Failed to process webhook push sync inline for ${emailAddress}`,
+        "GmailWebhook",
+        {
+          error: String(syncErr),
+        },
+      );
+    }
 
     return new Response("Acknowledged", { status: 200 });
   } catch (err) {

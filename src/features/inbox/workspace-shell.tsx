@@ -41,6 +41,7 @@ type Message = {
   subject: string;
   snippet: string;
   htmlBody: string;
+  textBody?: string;
   isRead: boolean;
   isStarred: boolean;
   internalDate: string;
@@ -97,6 +98,25 @@ export function WorkspaceShell() {
       console.error("Error loading conversations", err);
     }
   }, [activeLabel, searchQuery, selectedConv]);
+
+  const selectConversation = async (conv: Conversation) => {
+    setSelectedConv(conv);
+    conv.messages.forEach((m) => {
+      if (!m.isRead) markAsRead(m.id);
+    });
+
+    try {
+      const res = await fetch(`/api/conversations/${conv.id}`);
+      if (res.ok) {
+        const body = await res.json();
+        if (body.success && body.data) {
+          setSelectedConv(body.data);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load conversation details", err);
+    }
+  };
 
   // Poll intervals
   useEffect(() => {
@@ -283,13 +303,7 @@ export function WorkspaceShell() {
               return (
                 <div
                   key={conv.id}
-                  onClick={() => {
-                    setSelectedConv(conv);
-                    // Mark last messages as read
-                    conv.messages.forEach((m) => {
-                      if (!m.isRead) markAsRead(m.id);
-                    });
-                  }}
+                  onClick={() => selectConversation(conv)}
                   className={`flex cursor-pointer flex-col gap-1.5 p-3.5 transition-all ${
                     selectedConv?.id === conv.id
                       ? "bg-zinc-800/30"
@@ -416,10 +430,20 @@ export function WorkspaceShell() {
                     </div>
 
                     {/* Email Html Body Render */}
-                    <div
-                      className="prose prose-invert mt-4 max-w-none text-xs leading-relaxed text-zinc-300"
-                      dangerouslySetInnerHTML={{ __html: msg.htmlBody }}
-                    />
+                    {msg.htmlBody || msg.textBody ? (
+                      <div
+                        className="prose prose-invert mt-4 max-w-none text-xs leading-relaxed text-zinc-300"
+                        dangerouslySetInnerHTML={{
+                          __html: msg.htmlBody || `<p>${msg.textBody}</p>`,
+                        }}
+                      />
+                    ) : (
+                      <div className="mt-4 animate-pulse space-y-2.5">
+                        <div className="h-3 w-full rounded bg-zinc-800/60" />
+                        <div className="h-3 w-11/12 rounded bg-zinc-800/60" />
+                        <div className="h-3 w-4/5 rounded bg-zinc-800/60" />
+                      </div>
+                    )}
 
                     {/* Expandable Attachments card */}
                     {msg.attachments.length > 0 && (

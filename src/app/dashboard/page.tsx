@@ -27,78 +27,75 @@ export default async function DashboardPage() {
 
   const orgId = session.user.organizationId;
 
-  // 1. Fetch Organization Details
-  const organization = await db.organization.findUnique({
-    where: { id: orgId },
-  });
-
-  // 2. Fetch Primary Mailbox
-  const primaryMailbox =
-    (await db.emailAccount.findFirst({
-      where: { organizationId: orgId, isPrimary: true },
-    })) ||
-    (await db.emailAccount.findFirst({
-      where: { organizationId: orgId },
-    }));
-
-  // 3. Sync State and watch stats
-  const syncState = primaryMailbox
-    ? await db.syncState.findUnique({
-        where: { emailAccountId: primaryMailbox.id },
+  // 1. Fetch Organization Details & Primary Mailbox in parallel
+  const [organization, primaryMailbox] = await Promise.all([
+    db.organization.findUnique({
+      where: { id: orgId },
+    }),
+    db.emailAccount
+      .findFirst({
+        where: { organizationId: orgId, isPrimary: true },
       })
-    : null;
-
-  // 4. Metrics & counts
-  const totalConversations = await db.conversation.count({
-    where: { organizationId: orgId },
-  });
-
-  const unreadMessages = await db.message.count({
-    where: {
-      conversation: { organizationId: orgId },
-      isRead: false,
-      direction: "INBOUND",
-    },
-  });
-
-  const draftsCount = await db.draft.count({
-    where: { organizationId: orgId },
-  });
-
-  const templatesCount = await db.template.count({
-    where: { organizationId: orgId },
-  });
+      .then(async (primary) => {
+        if (primary) return primary;
+        return db.emailAccount.findFirst({
+          where: { organizationId: orgId },
+        });
+      }),
+  ]);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const sentTodayCount = await db.message.count({
-    where: {
-      conversation: { organizationId: orgId },
-      direction: "OUTBOUND",
-      createdAt: { gte: today },
-    },
-  });
-
-  // 5. Storage Usage
-  const storageAggregate = await db.attachment.aggregate({
-    _sum: { size: true },
-  });
-  const totalSizeBytes = storageAggregate._sum.size || 0;
-  const storageUsageFormatted =
-    totalSizeBytes > 1024 * 1024
-      ? `${(totalSizeBytes / (1024 * 1024)).toFixed(2)} MB`
-      : `${(totalSizeBytes / 1024).toFixed(0)} KB`;
-
-  // 6. Queue stats
-  const queuedJobs = await db.jobRecord.count({ where: { status: "queued" } });
-  const processingJobs = await db.jobRecord.count({
-    where: { status: "processing" },
-  });
-  const failedJobs = await db.jobRecord.count({ where: { status: "failed" } });
-
-  // 7. Assemble Unified Activity Log (Live from database)
-  const [recentMessages, recentJobs] = await Promise.all([
+  // 2. Fetch all counts, sync stats, storage usage, and activity logs in parallel
+  const [
+    syncState,
+    totalConversations,
+    unreadMessages,
+    draftsCount,
+    templatesCount,
+    sentTodayCount,
+    storageAggregate,
+    queuedJobs,
+    processingJobs,
+    failedJobs,
+    recentMessages,
+    recentJobs,
+  ] = await Promise.all([
+    primaryMailbox
+      ? db.syncState.findUnique({
+          where: { emailAccountId: primaryMailbox.id },
+        })
+      : Promise.resolve(null),
+    db.conversation.count({
+      where: { organizationId: orgId },
+    }),
+    db.message.count({
+      where: {
+        conversation: { organizationId: orgId },
+        isRead: false,
+        direction: "INBOUND",
+      },
+    }),
+    db.draft.count({
+      where: { organizationId: orgId },
+    }),
+    db.template.count({
+      where: { organizationId: orgId },
+    }),
+    db.message.count({
+      where: {
+        conversation: { organizationId: orgId },
+        direction: "OUTBOUND",
+        createdAt: { gte: today },
+      },
+    }),
+    db.attachment.aggregate({
+      _sum: { size: true },
+    }),
+    db.jobRecord.count({ where: { status: "queued" } }),
+    db.jobRecord.count({ where: { status: "processing" } }),
+    db.jobRecord.count({ where: { status: "failed" } }),
     db.message.findMany({
       where: { conversation: { organizationId: orgId } },
       orderBy: { createdAt: "desc" },
@@ -109,6 +106,12 @@ export default async function DashboardPage() {
       take: 5,
     }),
   ]);
+
+  const totalSizeBytes = storageAggregate._sum.size || 0;
+  const storageUsageFormatted =
+    totalSizeBytes > 1024 * 1024
+      ? `${(totalSizeBytes / (1024 * 1024)).toFixed(2)} MB`
+      : `${(totalSizeBytes / 1024).toFixed(0)} KB`;
 
   interface ActivityLog {
     id: string;
