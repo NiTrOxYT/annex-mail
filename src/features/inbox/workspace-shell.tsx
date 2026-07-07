@@ -211,6 +211,14 @@ export function WorkspaceShell() {
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [isListLoading, setIsListLoading] = useState(true);
 
+  // Collapsible composer state
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerMounted, setComposerMounted] = useState(false);
+  const [showDiscardAlert, setShowDiscardAlert] = useState(false);
+  const threadScrollRef = React.useRef<HTMLDivElement>(null);
+  const savedScrollRef = React.useRef<number>(0);
+  const editorFocusRef = React.useRef<(() => void) | null>(null);
+
   const [expandedMessages, setExpandedMessages] = useState<
     Record<string, boolean>
   >({});
@@ -291,6 +299,8 @@ export function WorkspaceShell() {
     const targetConv = cached || conv;
     setSelectedConv(targetConv);
     setReplyBody("");
+    setComposerOpen(false);
+    setComposerMounted(false);
 
     const lastMsg = targetConv.messages[targetConv.messages.length - 1];
     if (lastMsg) {
@@ -372,6 +382,59 @@ export function WorkspaceShell() {
       clearInterval(interval);
     };
   }, [fetchConversations]);
+
+  // Draft persistence — load on conversation open
+  useEffect(() => {
+    if (!selectedConv) return;
+    const draft = sessionStorage.getItem(`reply-draft-${selectedConv.id}`);
+    if (draft) {
+      setReplyBody(draft);
+    }
+  }, [selectedConv?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleOpenComposer = React.useCallback(() => {
+    if (!composerMounted) setComposerMounted(true);
+    setComposerOpen(true);
+    // save scroll position
+    if (threadScrollRef.current) {
+      savedScrollRef.current = threadScrollRef.current.scrollTop;
+    }
+    // focus editor after animation
+    setTimeout(() => editorFocusRef.current?.(), 260);
+  }, [composerMounted]);
+
+  const handleCloseComposer = React.useCallback(() => {
+    if (replyBody.trim() !== "") {
+      setShowDiscardAlert(true);
+    } else {
+      setComposerOpen(false);
+      // restore scroll
+      setTimeout(() => {
+        if (threadScrollRef.current) {
+          threadScrollRef.current.scrollTop = savedScrollRef.current;
+        }
+      }, 50);
+    }
+  }, [replyBody]);
+
+  const handleDiscardDraft = React.useCallback(() => {
+    setReplyBody("");
+    setComposerOpen(false);
+    setShowDiscardAlert(false);
+    if (selectedConv) {
+      sessionStorage.removeItem(`reply-draft-${selectedConv.id}`);
+    }
+  }, [selectedConv, setReplyBody]);
+
+  const handleReplyBodyChange = React.useCallback(
+    (html: string) => {
+      setReplyBody(html);
+      if (selectedConv) {
+        sessionStorage.setItem(`reply-draft-${selectedConv.id}`, html);
+      }
+    },
+    [selectedConv, setReplyBody],
+  );
 
   // Scroll positions preservation
   useEffect(() => {
@@ -583,6 +646,8 @@ export function WorkspaceShell() {
 
       if (res.ok) {
         setReplyBody("");
+        setComposerOpen(false);
+        sessionStorage.removeItem(`reply-draft-${selectedConv.id}`);
         setConversationCache((prev) => {
           const next = { ...prev };
           delete next[selectedConv.id];
@@ -614,6 +679,42 @@ export function WorkspaceShell() {
     setConversationCache,
     setSelectedConv,
     fetchConversations,
+  ]);
+
+  // Keyboard shortcuts for composer — placed after all handlers
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const isInput =
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        (e.target as HTMLElement)?.isContentEditable;
+      if (
+        e.key === "r" &&
+        !isInput &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        selectedConv
+      ) {
+        e.preventDefault();
+        handleOpenComposer();
+      }
+      if (e.key === "Escape" && composerOpen) {
+        handleCloseComposer();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && composerOpen) {
+        e.preventDefault();
+        handleSendReply();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [
+    composerOpen,
+    selectedConv,
+    handleOpenComposer,
+    handleCloseComposer,
+    handleSendReply,
   ]);
 
   const startDrag = (
@@ -1090,28 +1191,149 @@ export function WorkspaceShell() {
               </div>
             </div>
 
-            {/* Inline Quick Reply Composer */}
-            <div className="shrink-0 border-t border-zinc-800/80 bg-zinc-900/10 p-3 md:p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <CornerUpLeft className="h-3.5 w-3.5 text-zinc-500" />
-                <span className="text-xs font-medium text-zinc-400">
-                  Reply to thread...
-                </span>
+            {/* Collapsible Reply Composer */}
+            <div className="shrink-0 border-t border-zinc-800/60 p-3 md:p-4">
+              {/* Collapsed reply bar — always shown when composer is closed */}
+              {!composerOpen && (
+                <button
+                  id="reply-bar-btn"
+                  aria-label="Open reply composer (R)"
+                  onClick={handleOpenComposer}
+                  className="group flex h-[48px] w-full cursor-text items-center gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/20 px-4 text-left transition-all duration-150 hover:border-zinc-700/60 hover:bg-zinc-800/30 focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-600 md:h-[52px]"
+                >
+                  <CornerUpLeft className="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-400" />
+                  <span className="text-sm text-zinc-500 transition-colors group-hover:text-zinc-400">
+                    {replyBody.trim()
+                      ? "Continue draft..."
+                      : "Reply to thread..."}
+                  </span>
+                  {replyBody.trim() && (
+                    <span className="ml-auto rounded-full bg-blue-500/20 px-2 py-0.5 font-mono text-[9px] text-blue-400">
+                      DRAFT
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {/* Desktop: Inline expanded composer */}
+              <div
+                className={`overflow-hidden transition-all duration-250 ease-out md:block ${composerOpen ? "max-h-[540px] opacity-100" : "hidden max-h-0 opacity-0"}`}
+              >
+                {composerMounted && (
+                  <div className="overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-900/10">
+                    {/* Expanded header */}
+                    <div className="flex items-center justify-between border-b border-zinc-800/40 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <CornerUpLeft className="h-3.5 w-3.5 text-zinc-500" />
+                        <span className="text-xs font-medium text-zinc-400">
+                          Reply
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={handleCloseComposer}
+                          title="Minimize (Esc)"
+                          className="rounded-md p-1.5 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+                        >
+                          <ChevronRight className="h-3.5 w-3.5 rotate-90" />
+                        </button>
+                      </div>
+                    </div>
+                    {/* Editor */}
+                    <div className="min-h-[120px]">
+                      <RichEditor
+                        content={replyBody}
+                        onChange={handleReplyBodyChange}
+                      />
+                    </div>
+                    {/* Footer actions */}
+                    <div className="flex items-center justify-between border-t border-zinc-800/40 bg-zinc-950/30 px-3 py-2">
+                      <button
+                        onClick={handleCloseComposer}
+                        className="rounded-lg px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        disabled={isLoading || !replyBody.trim()}
+                        onClick={handleSendReply}
+                        className="flex min-h-[34px] items-center gap-2 rounded-lg bg-zinc-100 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 transition-all hover:bg-zinc-200 disabled:opacity-40"
+                      >
+                        {isLoading ? "Sending..." : "Send Reply"}
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="border-zinc-850 overflow-hidden rounded-xl border bg-zinc-900/10">
-                <RichEditor content={replyBody} onChange={setReplyBody} />
-                <div className="border-zinc-850 flex items-center justify-end border-t bg-zinc-950/30 p-2">
+            </div>
+
+            {/* Mobile: Full-screen composer dialog */}
+            <Dialog
+              open={composerOpen}
+              onOpenChange={(open) => {
+                if (!open) handleCloseComposer();
+              }}
+            >
+              <DialogContent
+                showCloseButton={false}
+                className="fixed inset-0 z-50 flex h-[100dvh] w-full max-w-full translate-x-0 translate-y-0 flex-col rounded-none border-0 bg-zinc-950 p-0 md:hidden"
+              >
+                <DialogTitle className="sr-only">Reply Composer</DialogTitle>
+                {/* Mobile composer header */}
+                <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+                  <button
+                    onClick={handleCloseComposer}
+                    className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                    <span className="text-sm">Back</span>
+                  </button>
                   <button
                     disabled={isLoading || !replyBody.trim()}
                     onClick={handleSendReply}
-                    className="flex min-h-[36px] items-center gap-2 rounded-lg bg-zinc-100 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 transition-all hover:bg-zinc-200 disabled:opacity-50"
+                    className="flex min-h-[36px] items-center gap-2 rounded-lg bg-zinc-100 px-4 py-1.5 text-xs font-semibold text-zinc-950 disabled:opacity-40"
                   >
-                    {isLoading ? "Sending..." : "Send Reply"}
-                    <ChevronRight className="h-3.5 w-3.5" />
+                    {isLoading ? "Sending..." : "Send"}
                   </button>
                 </div>
-              </div>
-            </div>
+                {/* Mobile editor */}
+                <div className="flex-1 overflow-hidden">
+                  {composerMounted && (
+                    <RichEditor
+                      content={replyBody}
+                      onChange={handleReplyBodyChange}
+                    />
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Discard draft confirmation */}
+            <Dialog open={showDiscardAlert} onOpenChange={setShowDiscardAlert}>
+              <DialogContent className="max-w-sm">
+                <DialogTitle className="text-sm font-semibold text-zinc-200">
+                  Discard draft?
+                </DialogTitle>
+                <p className="text-xs text-zinc-500">
+                  Your reply will be discarded. This cannot be undone.
+                </p>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    onClick={() => setShowDiscardAlert(false)}
+                    className="rounded-lg border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+                  >
+                    Continue editing
+                  </button>
+                  <button
+                    onClick={handleDiscardDraft}
+                    className="rounded-lg bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/30"
+                  >
+                    Discard
+                  </button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center p-4">
