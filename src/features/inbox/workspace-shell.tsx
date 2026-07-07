@@ -70,117 +70,120 @@ export type Conversation = {
 };
 
 // Swipable touch card for mobile
-const ConversationCard = ({
-  conv,
-  active,
-  onSelect,
-  onToggleRead,
-  onArchive,
-}: {
-  conv: Conversation;
-  active: boolean;
-  onSelect: (c: Conversation) => void;
-  onToggleRead: (c: Conversation, read: boolean) => void;
-  onArchive: (c: Conversation) => void;
-}) => {
-  const [startX, setStartX] = useState(0);
-  const [currentX, setCurrentX] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
+const ConversationCard = React.memo(
+  ({
+    conv,
+    active,
+    onSelect,
+    onToggleRead,
+    onArchive,
+  }: {
+    conv: Conversation;
+    active: boolean;
+    onSelect: (c: Conversation) => void;
+    onToggleRead: (c: Conversation, read: boolean) => void;
+    onArchive: (c: Conversation) => void;
+  }) => {
+    const [startX, setStartX] = useState(0);
+    const [currentX, setCurrentX] = useState(0);
+    const [isSwiping, setIsSwiping] = useState(false);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setStartX(e.touches[0].clientX);
-    setIsSwiping(true);
-  };
+    const handleTouchStart = (e: React.TouchEvent) => {
+      setStartX(e.touches[0].clientX);
+      setIsSwiping(true);
+    };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isSwiping) return;
-    const diff = e.touches[0].clientX - startX;
-    // Allow dragging up to 140px in either direction
-    if (Math.abs(diff) < 140) {
-      setCurrentX(diff);
-    }
-  };
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (!isSwiping) return;
+      const diff = e.touches[0].clientX - startX;
+      // Allow dragging up to 140px in either direction
+      if (Math.abs(diff) < 140) {
+        setCurrentX(diff);
+      }
+    };
 
-  const handleTouchEnd = () => {
-    setIsSwiping(false);
-    if (currentX > 80) {
-      const hasUnread = conv.messages.some((m) => !m.isRead);
-      onToggleRead(conv, !hasUnread);
-    } else if (currentX < -80) {
-      onArchive(conv);
-    }
-    setCurrentX(0);
-  };
+    const handleTouchEnd = () => {
+      setIsSwiping(false);
+      if (currentX > 80) {
+        const hasUnread = conv.messages.some((m) => !m.isRead);
+        onToggleRead(conv, !hasUnread);
+      } else if (currentX < -80) {
+        onArchive(conv);
+      }
+      setCurrentX(0);
+    };
 
-  const lastMsg = conv.messages[conv.messages.length - 1];
-  const hasUnread = conv.messages.some((m) => !m.isRead);
+    const lastMsg = conv.messages[conv.messages.length - 1];
+    const hasUnread = conv.messages.some((m) => !m.isRead);
 
-  return (
-    <div className="relative min-h-[48px] overflow-hidden border-b border-zinc-900/60 bg-zinc-950 select-none">
-      {/* Background Indicators */}
-      <div className="absolute inset-0 flex items-center justify-between bg-zinc-900/30 px-6">
-        <div
-          className={`flex items-center gap-2 text-xs font-semibold text-emerald-400 ${currentX > 30 ? "opacity-100" : "opacity-0 transition-opacity duration-150"}`}
-        >
-          <Mail className="h-4 w-4" />
-          Mark {hasUnread ? "Read" : "Unread"}
-        </div>
-        <div
-          className={`flex items-center gap-2 text-xs font-semibold text-red-400 ${currentX < -30 ? "opacity-100" : "opacity-0 transition-opacity duration-150"}`}
-        >
-          <Archive className="h-4 w-4" />
-          Archive
-        </div>
-      </div>
-
-      {/* Foreground Container */}
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{
-          transform: `translateX(${currentX}px)`,
-          transition: isSwiping ? "none" : "transform 200ms ease-out",
-        }}
-        onClick={() => {
-          if (Math.abs(currentX) < 10) {
-            onSelect(conv);
-          }
-        }}
-        className={`relative z-10 flex cursor-pointer flex-col gap-1.5 bg-zinc-950 p-3.5 transition-all ${
-          active ? "bg-zinc-800/30" : "hover:bg-zinc-900/30"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <span className="max-w-[150px] truncate text-xs font-semibold text-zinc-300">
-            {lastMsg?.sender || "Unknown Sender"}
-          </span>
-          <span className="font-mono text-[9px] text-zinc-500">
-            {new Date(conv.lastMessageAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {hasUnread && (
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-          )}
-          <span
-            className={`truncate text-xs ${
-              hasUnread ? "font-semibold text-zinc-200" : "text-zinc-400"
-            }`}
+    return (
+      <div className="relative min-h-[48px] overflow-hidden border-b border-zinc-900/60 bg-zinc-950 select-none">
+        {/* Background Indicators */}
+        <div className="absolute inset-0 flex items-center justify-between bg-zinc-900/30 px-6">
+          <div
+            className={`flex items-center gap-2 text-xs font-semibold text-emerald-400 ${currentX > 30 ? "opacity-100" : "opacity-0 transition-opacity duration-150"}`}
           >
-            {conv.subject}
-          </span>
+            <Mail className="h-4 w-4" />
+            Mark {hasUnread ? "Read" : "Unread"}
+          </div>
+          <div
+            className={`flex items-center gap-2 text-xs font-semibold text-red-400 ${currentX < -30 ? "opacity-100" : "opacity-0 transition-opacity duration-150"}`}
+          >
+            <Archive className="h-4 w-4" />
+            Archive
+          </div>
         </div>
-        <p className="line-clamp-2 text-[10px] text-zinc-500">
-          {lastMsg?.snippet || "No preview available"}
-        </p>
+
+        {/* Foreground Container */}
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            transform: `translateX(${currentX}px)`,
+            transition: isSwiping ? "none" : "transform 200ms ease-out",
+          }}
+          onClick={() => {
+            if (Math.abs(currentX) < 10) {
+              onSelect(conv);
+            }
+          }}
+          className={`relative z-10 flex cursor-pointer flex-col gap-1.5 bg-zinc-950 p-3.5 transition-all ${
+            active ? "bg-zinc-800/30" : "hover:bg-zinc-900/30"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="max-w-[150px] truncate text-xs font-semibold text-zinc-300">
+              {lastMsg?.sender || "Unknown Sender"}
+            </span>
+            <span className="font-mono text-[9px] text-zinc-500">
+              {new Date(conv.lastMessageAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {hasUnread && (
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
+            )}
+            <span
+              className={`truncate text-xs ${
+                hasUnread ? "font-semibold text-zinc-200" : "text-zinc-400"
+              }`}
+            >
+              {conv.subject}
+            </span>
+          </div>
+          <p className="line-clamp-2 text-[10px] text-zinc-500">
+            {lastMsg?.snippet || "No preview available"}
+          </p>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  },
+);
+ConversationCard.displayName = "ConversationCard";
 
 export function WorkspaceShell() {
   const {
@@ -243,41 +246,36 @@ export function WorkspaceShell() {
           data?: { items: Conversation[] };
         };
         if (body.success && body.data) {
-          setConversations(body.data.items);
-          if (selectedConv) {
-            const updated = body.data.items.find(
-              (c: Conversation) => c.id === selectedConv.id,
-            );
-            if (updated) {
-              setSelectedConv((prev) => {
-                if (!prev) return updated;
-                const lastMsg = updated.messages[updated.messages.length - 1];
-                if (lastMsg) {
-                  setExpandedMessages((curr) => {
-                    if (Object.keys(curr).length === 0) {
-                      return { [lastMsg.id]: true };
-                    }
-                    return curr;
-                  });
+          const items = body.data.items;
+          setConversations(items);
+          setSelectedConv((prev) => {
+            if (!prev) return null;
+            const updated = items.find((c: Conversation) => c.id === prev.id);
+            if (!updated) return prev;
+            const lastMsg = updated.messages[updated.messages.length - 1];
+            if (lastMsg) {
+              setExpandedMessages((curr) => {
+                if (Object.keys(curr).length === 0) {
+                  return { [lastMsg.id]: true };
                 }
-                return {
-                  ...updated,
-                  messages: updated.messages.map((newMsg) => {
-                    const existingMsg = prev.messages.find(
-                      (m) => m.id === newMsg.id,
-                    );
-                    return {
-                      ...newMsg,
-                      htmlBody: existingMsg?.htmlBody ?? newMsg.htmlBody,
-                      textBody: existingMsg?.textBody ?? newMsg.textBody,
-                      attachments:
-                        existingMsg?.attachments ?? newMsg.attachments,
-                    };
-                  }),
-                };
+                return curr;
               });
             }
-          }
+            return {
+              ...updated,
+              messages: updated.messages.map((newMsg) => {
+                const existingMsg = prev.messages.find(
+                  (m) => m.id === newMsg.id,
+                );
+                return {
+                  ...newMsg,
+                  htmlBody: existingMsg?.htmlBody ?? newMsg.htmlBody,
+                  textBody: existingMsg?.textBody ?? newMsg.textBody,
+                  attachments: existingMsg?.attachments ?? newMsg.attachments,
+                };
+              }),
+            };
+          });
         }
       }
     } catch (err) {
@@ -285,13 +283,7 @@ export function WorkspaceShell() {
     } finally {
       setIsListLoading(false);
     }
-  }, [
-    activeLabel,
-    searchQuery,
-    selectedConv,
-    setConversations,
-    setSelectedConv,
-  ]);
+  }, [activeLabel, searchQuery, setConversations, setSelectedConv]);
 
   const selectConversation = async (conv: Conversation) => {
     const cached = conversationCache[conv.id];
@@ -448,121 +440,133 @@ export function WorkspaceShell() {
     listTouchStartY.current = 0;
   };
 
-  const markAsRead = async (messageId: string) => {
-    setConversations((prevList) =>
-      prevList.map((conv) => ({
-        ...conv,
-        messages: conv.messages.map((m) =>
-          m.id === messageId ? { ...m, isRead: true } : m,
-        ),
-      })),
-    );
-    setSelectedConv((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        messages: prev.messages.map((m) =>
-          m.id === messageId ? { ...m, isRead: true } : m,
-        ),
-      };
-    });
-
-    await fetch("/api/messages/read", {
-      method: "POST",
-      body: JSON.stringify({ messageId }),
-      headers: { "Content-Type": "application/json" },
-    });
-    fetchConversations();
-  };
-
-  const handleToggleRead = async (conv: Conversation, read: boolean) => {
-    setConversations((prevList) =>
-      prevList.map((c) =>
-        c.id === conv.id
-          ? {
-              ...c,
-              messages: c.messages.map((m) => ({ ...m, isRead: read })),
-            }
-          : c,
-      ),
-    );
-    if (selectedConv?.id === conv.id) {
-      setSelectedConv((prev) =>
-        prev
-          ? {
-              ...prev,
-              messages: prev.messages.map((m) => ({ ...m, isRead: read })),
-            }
-          : null,
+  const markAsRead = React.useCallback(
+    async (messageId: string) => {
+      setConversations((prevList) =>
+        prevList.map((conv) => ({
+          ...conv,
+          messages: conv.messages.map((m) =>
+            m.id === messageId ? { ...m, isRead: true } : m,
+          ),
+        })),
       );
-    }
+      setSelectedConv((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          messages: prev.messages.map((m) =>
+            m.id === messageId ? { ...m, isRead: true } : m,
+          ),
+        };
+      });
 
-    const promises = conv.messages
-      .filter((m) => m.isRead !== read)
-      .map((m) =>
-        fetch(`/api/messages/${read ? "read" : "unread"}`, {
-          method: "POST",
-          body: JSON.stringify({ messageId: m.id }),
-          headers: { "Content-Type": "application/json" },
-        }),
+      await fetch("/api/messages/read", {
+        method: "POST",
+        body: JSON.stringify({ messageId }),
+        headers: { "Content-Type": "application/json" },
+      });
+      fetchConversations();
+    },
+    [fetchConversations, setConversations, setSelectedConv],
+  );
+
+  const handleToggleRead = React.useCallback(
+    async (conv: Conversation, read: boolean) => {
+      setConversations((prevList) =>
+        prevList.map((c) =>
+          c.id === conv.id
+            ? {
+                ...c,
+                messages: c.messages.map((m) => ({ ...m, isRead: read })),
+              }
+            : c,
+        ),
       );
-    await Promise.all(promises);
-    fetchConversations();
-  };
+      setSelectedConv((prev) => {
+        if (!prev || prev.id !== conv.id) return prev;
+        return {
+          ...prev,
+          messages: prev.messages.map((m) => ({ ...m, isRead: read })),
+        };
+      });
 
-  const toggleStar = async (messageId: string, currentStarred: boolean) => {
-    const nextStarred = !currentStarred;
-    setConversations((prevList) =>
-      prevList.map((conv) => ({
-        ...conv,
-        messages: conv.messages.map((m) =>
-          m.id === messageId ? { ...m, isStarred: nextStarred } : m,
-        ),
-      })),
-    );
-    setSelectedConv((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        messages: prev.messages.map((m) =>
-          m.id === messageId ? { ...m, isStarred: nextStarred } : m,
-        ),
-      };
-    });
+      const promises = conv.messages
+        .filter((m) => m.isRead !== read)
+        .map((m) =>
+          fetch(`/api/messages/${read ? "read" : "unread"}`, {
+            method: "POST",
+            body: JSON.stringify({ messageId: m.id }),
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      await Promise.all(promises);
+      fetchConversations();
+    },
+    [fetchConversations, setConversations, setSelectedConv],
+  );
 
-    await fetch("/api/messages/star", {
-      method: "POST",
-      body: JSON.stringify({ messageId, starred: nextStarred }),
-      headers: { "Content-Type": "application/json" },
-    });
-    fetchConversations();
-  };
+  const toggleStar = React.useCallback(
+    async (messageId: string, currentStarred: boolean) => {
+      const nextStarred = !currentStarred;
+      setConversations((prevList) =>
+        prevList.map((conv) => ({
+          ...conv,
+          messages: conv.messages.map((m) =>
+            m.id === messageId ? { ...m, isStarred: nextStarred } : m,
+          ),
+        })),
+      );
+      setSelectedConv((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          messages: prev.messages.map((m) =>
+            m.id === messageId ? { ...m, isStarred: nextStarred } : m,
+          ),
+        };
+      });
 
-  const archiveThread = async (conversationId: string) => {
-    setConversations((prev) => prev.filter((c) => c.id !== conversationId));
-    setSelectedConv(null);
+      await fetch("/api/messages/star", {
+        method: "POST",
+        body: JSON.stringify({ messageId, starred: nextStarred }),
+        headers: { "Content-Type": "application/json" },
+      });
+      fetchConversations();
+    },
+    [fetchConversations, setConversations, setSelectedConv],
+  );
 
-    await fetch("/api/messages/archive", {
-      method: "POST",
-      body: JSON.stringify({ conversationId }),
-      headers: { "Content-Type": "application/json" },
-    });
-    fetchConversations();
-  };
+  const archiveThread = React.useCallback(
+    async (conversationId: string) => {
+      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+      setSelectedConv(null);
 
-  const deleteThread = async (conversationId: string) => {
-    setConversations((prev) => prev.filter((c) => c.id !== conversationId));
-    setSelectedConv(null);
+      await fetch("/api/messages/archive", {
+        method: "POST",
+        body: JSON.stringify({ conversationId }),
+        headers: { "Content-Type": "application/json" },
+      });
+      fetchConversations();
+    },
+    [fetchConversations, setConversations, setSelectedConv],
+  );
 
-    await fetch("/api/messages/trash", {
-      method: "POST",
-      body: JSON.stringify({ conversationId }),
-      headers: { "Content-Type": "application/json" },
-    });
-    fetchConversations();
-  };
+  const deleteThread = React.useCallback(
+    async (conversationId: string) => {
+      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+      setSelectedConv(null);
 
-  const handleSendReply = async () => {
+      await fetch("/api/messages/trash", {
+        method: "POST",
+        body: JSON.stringify({ conversationId }),
+        headers: { "Content-Type": "application/json" },
+      });
+      fetchConversations();
+    },
+    [fetchConversations, setConversations, setSelectedConv],
+  );
+
+  const handleSendReply = React.useCallback(async () => {
     if (!selectedConv || !replyBody.trim()) return;
     setIsLoading(true);
 
@@ -602,7 +606,14 @@ export function WorkspaceShell() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+    selectedConv,
+    replyBody,
+    setReplyBody,
+    setConversationCache,
+    setSelectedConv,
+    fetchConversations,
+  ]);
 
   const startDrag = (
     e: React.MouseEvent,
