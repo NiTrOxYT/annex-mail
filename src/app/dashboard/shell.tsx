@@ -256,7 +256,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
 
         {/* Mobile Sidebar Modal Drawer */}
         <Dialog open={isMobileOpen} onOpenChange={setIsMobileOpen}>
-          <DialogContent className="animate-in slide-in-from-left fixed inset-y-0 left-0 z-50 h-full w-60 border-r border-zinc-800 bg-zinc-950 p-0 shadow-lg duration-300">
+          <DialogContent className="animate-in slide-in-from-left fixed inset-y-0 left-0 z-50 h-[100dvh] w-[85vw] max-w-[320px] translate-x-0 translate-y-0 border-r border-zinc-800 bg-zinc-950 p-0 shadow-lg duration-300">
             <DialogTitle className="sr-only">Navigation Drawer</DialogTitle>
             <div className="absolute top-4 right-4">
               <Button

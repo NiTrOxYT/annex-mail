@@ -29,6 +29,7 @@ import { RichEditor } from "@/components/mail/rich-editor";
 import { useWorkspace } from "./workspace-context";
 import { ListSkeleton } from "@/components/ui/skeleton-loader";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export type Label = {
   id: string;
@@ -700,28 +701,26 @@ export function WorkspaceShell() {
       </div>
 
       {/* Mobile Drawer (Slide over) */}
-      {mailboxDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setMailboxDrawerOpen(false)}
-          />
-          <div className="animate-in slide-in-from-left relative flex w-64 max-w-xs flex-col border-r border-zinc-800 bg-zinc-950 p-4 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] duration-200">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="font-mono text-xs font-semibold tracking-wider text-zinc-500 uppercase">
-                Mailboxes
-              </span>
-              <button
-                onClick={() => setMailboxDrawerOpen(false)}
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
-              >
-                <X className="h-4.5 w-4.5" />
-              </button>
-            </div>
-            {renderMailboxesList()}
+      <Dialog open={mailboxDrawerOpen} onOpenChange={setMailboxDrawerOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="animate-in slide-in-from-left fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-[85vw] max-w-[320px] translate-x-0 translate-y-0 flex-col border-r border-zinc-800 bg-zinc-950 p-4 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-lg duration-200"
+        >
+          <DialogTitle className="sr-only">Mailboxes Selection</DialogTitle>
+          <div className="mb-4 flex items-center justify-between">
+            <span className="font-mono text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+              Mailboxes
+            </span>
+            <button
+              onClick={() => setMailboxDrawerOpen(false)}
+              className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
           </div>
-        </div>
-      )}
+          {renderMailboxesList()}
+        </DialogContent>
+      </Dialog>
 
       {/* Resize Handle 1 */}
       <div
